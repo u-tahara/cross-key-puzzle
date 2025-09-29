@@ -75,6 +75,7 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
   goBackToProblem();
 });
 
+const fallbackConfigKey = '2';
 const fallbackConfig = {
   width: 6,
   height: 6,
@@ -90,38 +91,38 @@ const fallbackConfig = {
   ],
 };
 
-const resolveMazeConfig = () => {
-  const namespace = window.CrossKeyMaze;
-  if (namespace && typeof namespace.getMazeConfig === 'function') {
-    const config = namespace.getMazeConfig('2');
-    if (config) {
-      return config;
-    }
+const getConfigFromNamespace = (key) => {
+  const sanitizedKey = typeof key === 'string' ? key.trim() : '';
+  if (!sanitizedKey) {
+    return null;
   }
-  return fallbackConfig;
+
+  const namespace = window.CrossKeyMaze;
+  if (!namespace || typeof namespace.getMazeConfig !== 'function') {
+    return null;
+  }
+
+  try {
+    const config = namespace.getMazeConfig(sanitizedKey);
+    return config || null;
+  } catch (error) {
+    return null;
+  }
 };
 
-const mazeConfig = resolveMazeConfig();
-const width = Number(mazeConfig.width) || fallbackConfig.width;
-const height = Number(mazeConfig.height) || fallbackConfig.height;
+let currentConfigKey = fallbackConfigKey;
+let usingFallbackMazeConfig = true;
+let width = Number(fallbackConfig.width) || 0;
+let height = Number(fallbackConfig.height) || 0;
 const goal = {
-  x: Number(mazeConfig.goal?.x),
-  y: Number(mazeConfig.goal?.y),
+  x: Number(fallbackConfig.goal?.x) || 0,
+  y: Number(fallbackConfig.goal?.y) || 0,
 };
-if (!Number.isFinite(goal.x) || !Number.isFinite(goal.y)) {
-  goal.x = fallbackConfig.goal.x;
-  goal.y = fallbackConfig.goal.y;
-}
-const mazeMap = Array.isArray(mazeConfig.map) ? mazeConfig.map : fallbackConfig.map;
-
+let mazeMap = Array.isArray(fallbackConfig.map) ? fallbackConfig.map : [];
 const player = {
-  x: Number(mazeConfig.start?.x),
-  y: Number(mazeConfig.start?.y),
+  x: Number(fallbackConfig.start?.x) || 0,
+  y: Number(fallbackConfig.start?.y) || 0,
 };
-if (!Number.isFinite(player.x) || !Number.isFinite(player.y)) {
-  player.x = fallbackConfig.start.x;
-  player.y = fallbackConfig.start.y;
-}
 let hasGoalAlerted = false;
 
 function drawMaze() {
@@ -129,11 +130,14 @@ function drawMaze() {
     return;
   }
 
-  mazeContainer.style.setProperty('--maze-width', String(width));
+  const mazeWidth = Number.isFinite(width) && width > 0 ? width : fallbackConfig.width;
+  const mazeHeight = Number.isFinite(height) && height > 0 ? height : fallbackConfig.height;
+
+  mazeContainer.style.setProperty('--maze-width', String(mazeWidth));
   mazeContainer.innerHTML = '';
-  for (let y = 0; y < height; y += 1) {
+  for (let y = 0; y < mazeHeight; y += 1) {
     const row = Array.isArray(mazeMap[y]) ? mazeMap[y] : [];
-    for (let x = 0; x < width; x += 1) {
+    for (let x = 0; x < mazeWidth; x += 1) {
       const div = document.createElement('div');
       div.classList.add('cell');
       if (row[x] === 1) div.classList.add('wall');
@@ -144,6 +148,76 @@ function drawMaze() {
   }
 }
 
+const applyMazeConfig = (config = fallbackConfig, { resetPlayer = false, usingFallback = false } = {}) => {
+  if (!config) {
+    return;
+  }
+
+  width = Number(config.width) || fallbackConfig.width;
+  height = Number(config.height) || fallbackConfig.height;
+  mazeMap = Array.isArray(config.map) ? config.map : fallbackConfig.map;
+
+  usingFallbackMazeConfig = Boolean(usingFallback);
+
+  const goalX = Number(config.goal?.x);
+  const goalY = Number(config.goal?.y);
+  goal.x = Number.isFinite(goalX) ? goalX : fallbackConfig.goal.x;
+  goal.y = Number.isFinite(goalY) ? goalY : fallbackConfig.goal.y;
+
+  if (resetPlayer || !Number.isFinite(player.x) || !Number.isFinite(player.y)) {
+    const startX = Number(config.start?.x);
+    const startY = Number(config.start?.y);
+    player.x = Number.isFinite(startX) ? startX : fallbackConfig.start.x;
+    player.y = Number.isFinite(startY) ? startY : fallbackConfig.start.y;
+  }
+
+  hasGoalAlerted = false;
+  drawMaze();
+};
+
+const updateMazeConfigByKey = (key) => {
+  const sanitizedKey = typeof key === 'string' ? key.trim() : '';
+  if (!sanitizedKey) {
+    return false;
+  }
+
+  const config = getConfigFromNamespace(sanitizedKey);
+  const shouldReapply = sanitizedKey !== currentConfigKey || usingFallbackMazeConfig;
+
+  if (!config) {
+    if (sanitizedKey !== currentConfigKey) {
+      currentConfigKey = sanitizedKey;
+      applyMazeConfig(fallbackConfig, { resetPlayer: true, usingFallback: true });
+    }
+    return false;
+  }
+
+  currentConfigKey = sanitizedKey;
+  if (shouldReapply) {
+    applyMazeConfig(config, { resetPlayer: true, usingFallback: false });
+  }
+  return true;
+};
+
+const initialConfigFromNamespace = getConfigFromNamespace(fallbackConfigKey);
+const initialConfig = initialConfigFromNamespace || fallbackConfig;
+applyMazeConfig(initialConfig, { resetPlayer: true, usingFallback: !initialConfigFromNamespace });
+
+const updateGoal = (position = {}, { shouldRedraw = true } = {}) => {
+  const x = Number(position.x);
+  const y = Number(position.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return false;
+  }
+
+  const changed = goal.x !== x || goal.y !== y;
+  goal.x = x;
+  goal.y = y;
+  if (changed && shouldRedraw) {
+    drawMaze();
+  }
+  return changed;
+};
 const updatePlayer = (position = {}) => {
   const x = Number(position.x);
   const y = Number(position.y);
@@ -166,32 +240,48 @@ const handleGoal = (goalReached) => {
   }
 };
 
-drawMaze();
-
-navigationSocket.on('status', ({ room, code: payloadCode, maze } = {}) => {
+navigationSocket.on('status', ({ room, code: payloadCode, maze, mazeConfigKey, problem, goal: payloadGoal } = {}) => {
   const roomCode = room || payloadCode;
   if (code && roomCode && roomCode !== code) {
     return;
+  }
+
+  const incomingKey = mazeConfigKey || problem;
+  const configUpdated = incomingKey ? updateMazeConfigByKey(incomingKey) : false;
+
+  let goalChanged = false;
+  if (!configUpdated && payloadGoal) {
+    goalChanged = updateGoal(payloadGoal, { shouldRedraw: false });
   }
 
   if (maze && maze.player) {
     updatePlayer(maze.player);
     handleGoal(player.x === goal.x && player.y === goal.y);
+  } else if (goalChanged) {
+    drawMaze();
   }
 });
 
-navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, goalReached } = {}) => {
+navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, goalReached, goal: payloadGoal, mazeConfigKey } = {}) => {
   const roomCode = room || payloadCode;
   if (code && roomCode && roomCode !== code) {
     return;
   }
 
-  if (!position) {
-    return;
+  if (mazeConfigKey) {
+    updateMazeConfigByKey(mazeConfigKey);
   }
 
-  updatePlayer(position);
-  handleGoal(Boolean(goalReached));
+  if (payloadGoal) {
+    updateGoal(payloadGoal, { shouldRedraw: false });
+  }
+
+  if (position) {
+    updatePlayer(position);
+    handleGoal(Boolean(goalReached));
+  } else {
+    drawMaze();
+  }
 });
 
 const backButton = document.querySelector('.back-button');

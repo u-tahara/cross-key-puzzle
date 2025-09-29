@@ -1,30 +1,18 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>スマホコントローラー</title></head>
-<body>
-  <h1>方向ボタン</h1>
-  <div style="display: grid; grid-template-areas:
-      '.    up    .'
-      'left down right';
-      gap: 10px; width: 90%; height: 50%; margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-    <button style="grid-area: up; font-size: 100px;" onclick="move('up')">↑</button>
-    <button style="grid-area: left; font-size: 100px;" onclick="move('left')">←</button>
-    <button style="grid-area: down; font-size: 100px;" onclick="move('down')">↓</button>
-    <button style="grid-area: right; font-size: 100px;" onclick="move('right')">→</button>
-  </div>
-
-  <script>
-    const code = new URLSearchParams(location.search).get("code");
-    const socket = new WebSocket("ws://192.168.1.6:8081");
-
-    socket.addEventListener("open", () => {
-      socket.send(JSON.stringify({ type: "resume", role: "mobile", code }));
-    });
-
-    function move(direction) {
-      socket.send(JSON.stringify({ type: "move", direction }));
-      console.log(direction);
-    }
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホコントローラー</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="js/mobile-next.js" defer></script>
+  </head>
+  <body class="page page-mobile-controller">
+    <h1>方向ボタン</h1>
+    <div class="controller">
+      <button type="button" data-direction="up">↑</button>
+      <button type="button" data-direction="left">←</button>
+      <button type="button" data-direction="down">↓</button>
+      <button type="button" data-direction="right">→</button>
+    </div>
+  </body>
 </html>

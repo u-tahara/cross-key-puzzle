@@ -1,4 +1,5 @@
 const controller = document.querySelector('.controller');
+const statusDisplay = document.querySelector('.controller-status');
 const code = new URLSearchParams(window.location.search).get('code');
 
 const navigationSocket = io('/', {
@@ -77,6 +78,64 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
 
 setupBackNavigation();
 
+const setStatusMessage = (message = '') => {
+  if (!statusDisplay) return;
+  statusDisplay.textContent = message;
+};
+
+const describeDirection = (direction) => {
+  if (direction === 'up') return '上に進みました';
+  if (direction === 'down') return '下に進みました';
+  if (direction === 'left') return '左に進みました';
+  if (direction === 'right') return '右に進みました';
+  return '';
+};
+
+navigationSocket.on('status', ({ room, code: payloadCode, maze } = {}) => {
+  const roomCode = room || payloadCode;
+  if (code && roomCode && roomCode !== code) {
+    return;
+  }
+
+  if (maze && maze.player) {
+    const { x, y } = maze.player;
+    setStatusMessage(`現在位置: (${x}, ${y})`);
+  }
+});
+
+navigationSocket.on('mazeState', ({ room, code: payloadCode, moved, direction, goalReached, player: position } = {}) => {
+  const roomCode = room || payloadCode;
+  if (code && roomCode && roomCode !== code) {
+    return;
+  }
+
+  if (!moved && direction) {
+    setStatusMessage('その方向には進めません');
+    return;
+  }
+
+  if (goalReached) {
+    setStatusMessage('ゴールしました！');
+    return;
+  }
+
+  const message = describeDirection(direction);
+  if (message) {
+    setStatusMessage(message);
+    return;
+  }
+
+  if (position) {
+    const x = Number(position.x);
+    const y = Number(position.y);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      setStatusMessage(`現在位置: (${x}, ${y})`);
+      return;
+    }
+  }
+
+});
+
 if (controller) {
   controller.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-direction]');
@@ -86,5 +145,6 @@ if (controller) {
 
     const { direction } = button.dataset;
     navigationSocket.emit('moveDirection', { room: code, direction });
+    setStatusMessage('操作を送信しました');
   });
 }

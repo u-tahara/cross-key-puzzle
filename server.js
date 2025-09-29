@@ -13,7 +13,7 @@
 
 import http from 'http';
 import { Server } from 'socket.io';
-import mazeUtils from './maze/logic.cjs';
+import mazeUtils from './js/maze-logic.js';
 
 // ====== 設定 ======
 const PORT = Number(process.env.PORT || 3001);

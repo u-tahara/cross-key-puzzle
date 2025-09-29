@@ -7,7 +7,7 @@ const {
   applyMazeMove,
   resolveMazeConfigKey,
   canMoveOnMaze,
-} = require('../maze/logic.cjs');
+} = require('../js/maze-logic.js');
 
 test('maze config key resolves to default when unknown', () => {
   assert.strictEqual(resolveMazeConfigKey('999'), '1');

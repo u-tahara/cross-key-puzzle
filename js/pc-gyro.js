@@ -75,19 +75,53 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
   goBackToProblem();
 });
 
-const width = 6;
-const height = 6;
-const goal = { x: 5, y: 5 };
-const mazeMap = [
-  [0, 0, 0, 1, 0, 0],
-  [1, 1, 0, 1, 0, 1],
-  [0, 0, 0, 0, 0, 0],
-  [0, 1, 1, 1, 1, 0],
-  [0, 0, 0, 0, 1, 0],
-  [1, 1, 1, 0, 0, 0],
-];
+const fallbackConfig = {
+  width: 6,
+  height: 6,
+  goal: { x: 5, y: 5 },
+  start: { x: 0, y: 0 },
+  map: [
+    [0, 0, 0, 1, 0, 0],
+    [1, 1, 0, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 0],
+    [1, 1, 1, 0, 0, 0],
+  ],
+};
 
-const player = { x: 0, y: 0 };
+const resolveMazeConfig = () => {
+  const namespace = window.CrossKeyMaze;
+  if (namespace && typeof namespace.getMazeConfig === 'function') {
+    const config = namespace.getMazeConfig('2');
+    if (config) {
+      return config;
+    }
+  }
+  return fallbackConfig;
+};
+
+const mazeConfig = resolveMazeConfig();
+const width = Number(mazeConfig.width) || fallbackConfig.width;
+const height = Number(mazeConfig.height) || fallbackConfig.height;
+const goal = {
+  x: Number(mazeConfig.goal?.x),
+  y: Number(mazeConfig.goal?.y),
+};
+if (!Number.isFinite(goal.x) || !Number.isFinite(goal.y)) {
+  goal.x = fallbackConfig.goal.x;
+  goal.y = fallbackConfig.goal.y;
+}
+const mazeMap = Array.isArray(mazeConfig.map) ? mazeConfig.map : fallbackConfig.map;
+
+const player = {
+  x: Number(mazeConfig.start?.x),
+  y: Number(mazeConfig.start?.y),
+};
+if (!Number.isFinite(player.x) || !Number.isFinite(player.y)) {
+  player.x = fallbackConfig.start.x;
+  player.y = fallbackConfig.start.y;
+}
 let hasGoalAlerted = false;
 
 function drawMaze() {

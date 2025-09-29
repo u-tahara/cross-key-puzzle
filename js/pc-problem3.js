@@ -27,7 +27,7 @@
     return number;
   };
 
-  const DARKNESS_THRESHOLD = 0.2;
+  const DARKNESS_THRESHOLD = 0.03;
 
   const updatePasswordVisibility = (level) => {
     const isDarkEnough = level <= DARKNESS_THRESHOLD;

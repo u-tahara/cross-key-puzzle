@@ -14,6 +14,35 @@ body {
   background-color: #f7f7f7;
   color: #1f1f1f;
 
+  .page-footer {
+    margin: 0 0 3rem;
+    text-align: center;
+  }
+
+  .page-footer .back-button {
+    display: inline-block;
+    padding: 0.8rem 2.2rem;
+    border-radius: 1.5rem;
+    background: #4caf50;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: #388e3c;
+      box-shadow: 0 6px 16px rgba(56, 142, 60, 0.35);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 10px rgba(56, 142, 60, 0.3);
+    }
+  }
+
   main {
     width: min(960px, 90vw);
     margin: 0 auto;

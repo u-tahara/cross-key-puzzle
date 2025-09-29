@@ -1,0 +1,66 @@
+const mazeContainer = document.getElementById('maze');
+const code = new URLSearchParams(window.location.search).get('code');
+const socket = new WebSocket('ws://192.168.1.6:8081');
+
+const width = 5;
+const height = 5;
+const goal = { x: 4, y: 4 };
+const mazeMap = [
+  [0, 1, 0, 0, 0],
+  [0, 1, 0, 1, 0],
+  [0, 0, 0, 1, 0],
+  [1, 1, 0, 1, 0],
+  [0, 0, 0, 0, 0],
+];
+
+const player = { x: 0, y: 0 };
+
+function drawMaze() {
+  mazeContainer.innerHTML = '';
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const div = document.createElement('div');
+      div.classList.add('cell');
+      if (mazeMap[y][x] === 1) div.classList.add('wall');
+      if (x === player.x && y === player.y) div.classList.add('player');
+      if (x === goal.x && y === goal.y) div.classList.add('goal');
+      mazeContainer.appendChild(div);
+    }
+  }
+}
+
+function canMove(x, y) {
+  return x >= 0 && x < width && y >= 0 && y < height && mazeMap[y][x] === 0;
+}
+
+socket.addEventListener('open', () => {
+  socket.send(JSON.stringify({ type: 'resume', role: 'pc', code }));
+  drawMaze();
+});
+
+socket.addEventListener('message', (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type !== 'move') {
+    return;
+  }
+
+  let newX = player.x;
+  let newY = player.y;
+
+  if (data.direction === 'up') newY -= 1;
+  if (data.direction === 'down') newY += 1;
+  if (data.direction === 'left') newX -= 1;
+  if (data.direction === 'right') newX += 1;
+
+  if (!canMove(newX, newY)) {
+    return;
+  }
+
+  player.x = newX;
+  player.y = newY;
+  drawMaze();
+
+  if (player.x === goal.x && player.y === goal.y) {
+    window.alert('ゴール！');
+  }
+});

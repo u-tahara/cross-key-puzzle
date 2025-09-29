@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PC - 迷路</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f7f7f7;
+    }
+    #maze { 
+      display: grid; 
+      grid-template-columns: repeat(5, 60px); 
+      gap: 4px; 
+      margin: 2.5rem auto;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 1.5rem;
+    }
+    .cell { 
+      width: 60px; 
+      height: 60px; 
+      border: 1.5px solid #aaa; 
+      text-align: center; 
+      line-height: 60px; 
+      font-size: 1.5rem;
+    }
+    .wall { background: #666; }
+    .player { 
+      background: #355cdd; 
+      color: white; 
+      border-radius: 50%;
+    }
+    .goal { background: green; }
+  </style>
+</head>
+<body>
+  <h1>迷路</h1>
+  <div id="maze"></div>
+
+  <script>
+    const code = new URLSearchParams(location.search).get("code");
+    const socket = new WebSocket("ws://192.168.1.6:8081");
+
+    const width = 5, height = 5;
+    let player = { x: 0, y: 0 };
+    const goal = { x: 4, y: 4 };
+
+    // 0: 通路, 1: 壁
+    const mazeMap = [
+      [0, 1, 0, 0, 0],
+      [0, 1, 0, 1, 0],
+      [0, 0, 0, 1, 0],
+      [1, 1, 0, 1, 0],
+      [0, 0, 0, 0, 0],
+    ];
+
+    function drawMaze() {
+      const maze = document.getElementById("maze");
+      maze.innerHTML = '';
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const div = document.createElement("div");
+          div.classList.add("cell");
+          if (mazeMap[y][x] === 1) div.classList.add("wall");
+          if (x === player.x && y === player.y) div.classList.add("player");
+          if (x === goal.x && y === goal.y) div.classList.add("goal");
+          maze.appendChild(div);
+        }
+      }
+    }
+
+    function canMove(x, y) {
+      return x >= 0 && x < width && y >= 0 && y < height && mazeMap[y][x] === 0;
+    }
+
+    socket.addEventListener("open", () => {
+      socket.send(JSON.stringify({ type: "resume", role: "pc", code }));
+      drawMaze();
+    });
+
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      console.log(data);
+
+      let newX = player.x;
+      let newY = player.y;
+
+      if (data.type === "move") {
+        if (data.direction === "up") newY--;
+        if (data.direction === "down") newY++;
+        if (data.direction === "left") newX--;
+        if (data.direction === "right") newX++;
+
+        if (canMove(newX, newY)) {
+          player.x = newX;
+          player.y = newY;
+          drawMaze();
+
+          if (player.x === goal.x && player.y === goal.y) {
+            alert("ゴール！");
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

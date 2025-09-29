@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PC接続画面</title>
+  <style>
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  #code {
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    background: #f5f5f5;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-top: 1rem;
+  }
+  body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  </style>
+</head>
+  <body>
+    <main>
+        <h1>接続コードを発行</h1>
+        <p id="code">コード：生成中...</p>
+    </main>
+  </body>
+
+  <script>
+    const socket = new WebSocket("ws://192.168.1.6:8081");
+
+    socket.addEventListener('open', () => {
+      socket.send(JSON.stringify({ type: "create" }));
+    });
+
+    socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'code') {
+        document.getElementById('code').textContent = 'コード: ' + data.code;
+      }
+      if (data.type === 'status' && data.role === 'pc') {
+        // ペア成立 → 次画面へ遷移
+        location.href = `pc-next.html?code=${data.code}`;
+      }
+    });
+  </script>
+</html>

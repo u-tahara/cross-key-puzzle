@@ -2,6 +2,7 @@ const code = new URLSearchParams(window.location.search).get('code');
 const codeDisplay = document.querySelector('[data-code-display]');
 const statusDisplay = document.querySelector('[data-status]');
 const startButton = document.querySelector('[data-start-button]');
+const resetButton = document.querySelector('[data-reset-button]');
 
 const resolveNavigationEndpoint = () => {
   const helper = window.NavigationWs?.detectNavigationWsEndpoint;
@@ -99,7 +100,7 @@ const orientationControl = {
 };
 
 const DIRECTION_THRESHOLD = 18; // degrees
-const DIRECTION_COOLDOWN_MS = 350;
+const DIRECTION_COOLDOWN_MS = 500;
 
 const normalizeDegree = (value) => (Number.isFinite(value) ? value : 0);
 
@@ -114,6 +115,15 @@ const detectDirectionFromOrientation = (beta, gamma) => {
   return null;
 };
 
+const resetOrientationControl = (announce = true) => {
+  orientationControl.lastDirection = null;
+  orientationControl.lastSentAt = 0;
+  orientationControl.needsNeutral = false;
+  if (announce) {
+    setStatusMessage('ジャイロの基準をリセットしました。端末をまっすぐに保ってください。');
+  }
+};
+
 const sendDirection = (direction) => {
   if (!direction) {
     return;
@@ -125,11 +135,11 @@ const sendDirection = (direction) => {
   }
   const now = Date.now();
 
-  if (orientationControl.needsNeutral && direction === orientationControl.lastDirection) {
+  if (now - orientationControl.lastSentAt < DIRECTION_COOLDOWN_MS) {
     return;
   }
 
-  if (direction === orientationControl.lastDirection && now - orientationControl.lastSentAt < DIRECTION_COOLDOWN_MS) {
+  if (orientationControl.needsNeutral && direction === orientationControl.lastDirection) {
     return;
   }
 
@@ -206,19 +216,34 @@ const enableSensor = async () => {
 
   window.addEventListener('deviceorientation', handleOrientation);
   sensorActive = true;
-  orientationControl.lastDirection = null;
-  orientationControl.needsNeutral = false;
+  resetOrientationControl(false);
   startButton.textContent = 'ジャイロ操作中';
   setStatusMessage('端末を傾けてキャラクターを動かしてください。');
+  if (resetButton) {
+    resetButton.disabled = false;
+  }
 };
 
 if (startButton) {
   startButton.addEventListener('click', enableSensor);
 }
 
+if (resetButton) {
+  resetButton.disabled = true;
+  resetButton.addEventListener('click', () => {
+    if (!sensorActive) {
+      return;
+    }
+    resetOrientationControl();
+  });
+}
+
 if (startButton && typeof window !== 'undefined' && !('DeviceOrientationEvent' in window)) {
   startButton.disabled = true;
   setStatusMessage('この端末ではジャイロセンサーが利用できません。');
+  if (resetButton) {
+    resetButton.disabled = true;
+  }
 }
 
 navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {

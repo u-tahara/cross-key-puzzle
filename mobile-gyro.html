@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - ジャイロ迷路</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/mobile-gyro.js" defer></script>
+  </head>
+  <body class="page page-mobile-controller page-mobile-gyro">
+    <main>
+      <h1>スマホを傾けて迷路を進もう</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="controller-status" data-status aria-live="polite"></p>
+      <button type="button" class="gyro-start-button" data-start-button>
+        ジャイロ操作を開始
+      </button>
+      <p class="gyro-instruction">
+        ボタンを押してセンサーを有効化し、端末を前後左右に傾けるとキャラクターが移動します。
+      </p>
+      <p class="gyro-note">
+        端末が古い場合やブラウザーの設定によってはジャイロセンサーが利用できないことがあります。
+      </p>
+      <div class="page-footer">
+        <a class="back-button" href="mobile-problem.html">問題に戻る</a>
+      </div>
+    </main>
+  </body>
+</html>

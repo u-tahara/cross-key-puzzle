@@ -57,7 +57,7 @@ const io = new Server(httpServer, {
 /** rooms = Map<roomCode, Set<socketId>> */
 const rooms = new Map();
 
-/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string }, maze?: { player: { x: number, y: number } } }> */
+/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string }, maze?: { player: { x: number, y: number } }, mazeConfigKey?: string }> */
 const roomStates = new Map();
 
 const sanitizeCode = (value) => String(value || '')
@@ -74,31 +74,61 @@ const normalizeDestinations = (dest = {}) => {
 };
 
 // ====== 迷路設定 ======
-const MAZE_WIDTH = 5;
-const MAZE_HEIGHT = 5;
-const MAZE_GOAL = { x: 4, y: 4 };
-const MAZE_START = { x: 0, y: 0 };
-const MAZE_MAP = [
-  [0, 1, 0, 0, 0],
-  [0, 1, 0, 1, 0],
-  [0, 0, 0, 1, 0],
-  [1, 1, 0, 1, 0],
-  [0, 0, 0, 0, 0],
-];
+const MAZE_CONFIGS = {
+  '1': {
+    width: 5,
+    height: 5,
+    goal: { x: 4, y: 4 },
+    start: { x: 0, y: 0 },
+    map: [
+      [0, 1, 0, 0, 0],
+      [0, 1, 0, 1, 0],
+      [0, 0, 0, 1, 0],
+      [1, 1, 0, 1, 0],
+      [0, 0, 0, 0, 0],
+    ],
+  },
+  '2': {
+    width: 6,
+    height: 6,
+    goal: { x: 5, y: 5 },
+    start: { x: 0, y: 0 },
+    map: [
+      [0, 0, 0, 1, 0, 0],
+      [1, 1, 0, 1, 0, 1],
+      [0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 1, 1, 0],
+      [0, 0, 0, 0, 1, 0],
+      [1, 1, 1, 0, 0, 0],
+    ],
+  },
+};
 
-const createInitialMazeState = () => ({
-  player: { ...MAZE_START },
+const DEFAULT_MAZE_KEY = '1';
+
+const resolveMazeConfigKey = (problem) => {
+  const key = String(problem || '').trim();
+  return Object.prototype.hasOwnProperty.call(MAZE_CONFIGS, key) ? key : DEFAULT_MAZE_KEY;
+};
+
+const getMazeConfig = (problemOrKey) => {
+  const key = resolveMazeConfigKey(problemOrKey);
+  return MAZE_CONFIGS[key];
+};
+
+const createInitialMazeState = (config = getMazeConfig(DEFAULT_MAZE_KEY)) => ({
+  player: { ...config.start },
 });
 
-const canMoveOnMaze = (x, y) => (
+const canMoveOnMaze = (config, x, y) => (
   x >= 0
-  && x < MAZE_WIDTH
+  && x < config.width
   && y >= 0
-  && y < MAZE_HEIGHT
-  && MAZE_MAP[y][x] === 0
+  && y < config.height
+  && config.map[y][x] === 0
 );
 
-const applyMazeMove = (mazeState, direction) => {
+const applyMazeMove = (mazeState, direction, config) => {
   if (!mazeState || !mazeState.player) return { moved: false };
 
   let newX = mazeState.player.x;
@@ -109,25 +139,25 @@ const applyMazeMove = (mazeState, direction) => {
   if (direction === 'left') newX -= 1;
   if (direction === 'right') newX += 1;
 
-  if (!canMoveOnMaze(newX, newY)) {
+  if (!canMoveOnMaze(config, newX, newY)) {
     return { moved: false };
   }
 
   mazeState.player = { x: newX, y: newY };
 
-  const goalReached = (newX === MAZE_GOAL.x) && (newY === MAZE_GOAL.y);
+  const goalReached = (newX === config.goal.x) && (newY === config.goal.y);
 
   return { moved: true, goalReached };
 };
 
-const emitMazeState = (target, room, mazeState, { direction, moved, goalReached, from, t } = {}) => {
+const emitMazeState = (target, room, mazeState, { direction, moved, goalReached, from, t } = {}, config = getMazeConfig(DEFAULT_MAZE_KEY)) => {
   if (!mazeState || !mazeState.player) return;
 
   const payload = {
     room,
     code: room,
     player: { ...mazeState.player },
-    goal: { ...MAZE_GOAL },
+    goal: { ...config.goal },
     moved: Boolean(moved),
   };
 
@@ -183,9 +213,13 @@ io.on('connection', (socket) => {
 
     const state = roomStates.get(room);
     if (state) {
+      const mazeKey = resolveMazeConfigKey(state.mazeConfigKey || state.problem);
+      const mazeConfig = getMazeConfig(mazeKey);
+      state.mazeConfigKey = mazeKey;
+      roomStates.set(room, state);
       socket.emit('status', { room, code: room, ...state });
       if (state.maze) {
-        emitMazeState(socket, room, state.maze, { moved: false });
+        emitMazeState(socket, room, state.maze, { moved: false }, mazeConfig);
       }
     }
   });
@@ -211,13 +245,18 @@ io.on('connection', (socket) => {
     if (!['up', 'down', 'left', 'right'].includes(direction)) return;
 
     const state = roomStates.get(code) || {};
+    const mazeKey = resolveMazeConfigKey(state.mazeConfigKey || state.problem);
+    const mazeConfig = getMazeConfig(mazeKey);
+
     if (!state.maze) {
-      state.maze = createInitialMazeState();
+      state.maze = createInitialMazeState(mazeConfig);
     }
 
-    const moveResult = applyMazeMove(state.maze, direction);
-    const timestamp = Number(payload.t || Date.now());
+    state.mazeConfigKey = mazeKey;
     roomStates.set(code, state);
+
+    const moveResult = applyMazeMove(state.maze, direction, mazeConfig);
+    const timestamp = Number(payload.t || Date.now());
 
     const meta = {
       direction,
@@ -228,11 +267,11 @@ io.on('connection', (socket) => {
     };
 
     if (!moveResult.moved) {
-      emitMazeState(socket, code, state.maze, meta);
+      emitMazeState(socket, code, state.maze, meta, mazeConfig);
       return;
     }
 
-    emitMazeState(io.to(code), code, state.maze, meta);
+    emitMazeState(io.to(code), code, state.maze, meta, mazeConfig);
   });
 
   socket.on('problemSelected', (payload = {}) => {
@@ -244,15 +283,25 @@ io.on('connection', (socket) => {
 
     const destinations = normalizeDestinations(payload.destinations);
 
-    const maze = createInitialMazeState();
+    const mazeKey = resolveMazeConfigKey(problem);
+    const mazeConfig = getMazeConfig(mazeKey);
+    const maze = createInitialMazeState(mazeConfig);
 
-    const data = { room: code, code, problem, maze };
+    const state = {
+      step: 'problemSelected',
+      problem,
+      destinations,
+      maze,
+      mazeConfigKey: mazeKey,
+    };
+
+    roomStates.set(code, state);
+
+    const data = { room: code, code, problem, maze, mazeConfigKey: mazeKey };
     if (destinations) data.destinations = destinations;
 
-    roomStates.set(code, { step: 'problemSelected', problem, destinations, maze });
-
     io.to(code).emit('problemSelected', data);
-    io.to(code).emit('status', { room: code, code, step: 'problemSelected', problem, destinations, maze });
+    io.to(code).emit('status', { room: code, code, ...state });
   });
 
   socket.on('navigateBack', (payload = {}) => {

@@ -1,6 +1,6 @@
 const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
-const socket = new WebSocket('ws://192.168.1.6:8081');
+const socket = new WebSocket('https://ws.u-tahara.jp');
 
 const width = 5;
 const height = 5;

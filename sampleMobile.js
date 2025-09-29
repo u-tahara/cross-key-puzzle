@@ -3,7 +3,7 @@
 // ----------------------
 
 export function SampleMobile() {
-  const socket = new WebSocket("ws://192.168.1.6:8081");
+  const socket = new WebSocket("https://ws.u-tahara.jp");
 
   function connect() {
     const code = document.getElementById('code').value;

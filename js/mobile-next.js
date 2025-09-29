@@ -1,6 +1,6 @@
 const controller = document.querySelector('.controller');
 const code = new URLSearchParams(window.location.search).get('code');
-const socket = new WebSocket('ws://192.168.1.6:8081');
+const socket = new WebSocket('https://ws.u-tahara.jp');
 
 socket.addEventListener('open', () => {
   socket.send(JSON.stringify({ type: 'resume', role: 'mobile', code }));

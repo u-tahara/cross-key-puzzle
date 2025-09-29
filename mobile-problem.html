@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - 問題開始待機</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/mobile-wait.js" defer></script>
+  </head>
+  <body class="page page-mobile-wait">
+    <main>
+      <h1>PC側で問題を選択中です</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="wait-instruction">PCで問題が選択されるまでこのままお待ちください。</p>
+      <div class="wait-indicator" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </main>
+  </body>
+</html>

@@ -51,23 +51,29 @@
   // ---- サーバーからのイベント ----
 
   // 旧実装互換: サーバーが「mobile用のstatus」を返すとき
-  socket.on('status', ({ role, code } = {}) => {
-    if (role === 'mobile') {
-      const c = code || currentCode;
-      location.href = `mobile-next.html?code=${encodeURIComponent(c)}`;
+  socket.on('status', ({ role, code, step, problem, destinations } = {}) => {
+    if (role !== 'mobile') return;
+    const c = code || currentCode;
+
+    if (step === 'problemSelected') {
+      const mobileDest = destinations?.mobile || 'mobile-next.html';
+      location.href = `${mobileDest}?code=${encodeURIComponent(c)}`;
+      return;
     }
+
+    location.href = `mobile-problem.html?code=${encodeURIComponent(c)}`;
   });
 
   // 新実装: PCとスマホの“同時遷移”合図
   socket.on('paired', ({ code } = {}) => {
     const c = code || currentCode;
-    location.href = `mobile-next.html?code=${encodeURIComponent(c)}`;
+    location.href = `mobile-problem.html?code=${encodeURIComponent(c)}`;
   });
 
   // 互換フォールバック: “部屋の人数更新”で2人以上になったら遷移
   socket.on('memberUpdate', (info = {}) => {
     if (info.type === 'join' && typeof info.count === 'number' && info.count >= 2) {
-      location.href = `mobile-next.html?code=${encodeURIComponent(currentCode)}`;
+      location.href = `mobile-problem.html?code=${encodeURIComponent(currentCode)}`;
     }
   });
 

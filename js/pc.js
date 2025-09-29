@@ -31,14 +31,14 @@
   // 🔴 スマホが同じコードで入室した合図（同時遷移）
   socket.on('paired', ({ code } = {}) => {
     const c = code || currentCode || '';
-    location.href = `pc-next.html?code=${encodeURIComponent(c)}`;
+    location.href = `pc-problem.html?code=${encodeURIComponent(c)}`;
   });
 
   // 互換フォールバック：メンバー数イベントで2人以上になったら遷移
   socket.on('memberUpdate', (info = {}) => {
     if (info.type === 'join' && typeof info.count === 'number' && info.count >= 2) {
       const c = currentCode || '';
-      location.href = `pc-next.html?code=${encodeURIComponent(c)}`;
+      location.href = `pc-problem.html?code=${encodeURIComponent(c)}`;
     }
   });
 

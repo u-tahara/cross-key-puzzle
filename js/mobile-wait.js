@@ -10,7 +10,7 @@
   const destinationMap = {
     '1': 'mobile-next.html',
     '2': 'mobile-next.html',
-    '3': 'mobile-next.html',
+    '3': 'mobile-problem3.html',
     '4': 'mobile-next.html',
     '5': 'mobile-next.html'
   };

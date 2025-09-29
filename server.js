@@ -302,6 +302,10 @@ io.on('connection', (socket) => {
       mazeConfigKey: mazeKey,
     };
 
+    if (problem === '3') {
+      state.lightLevel = 1;
+    }
+
     roomStates.set(code, state);
 
     const data = { room: code, code, problem, maze, mazeConfigKey: mazeKey };
@@ -324,6 +328,26 @@ io.on('connection', (socket) => {
 
     socket.to(code).emit('navigateBack', notifyPayload);
     io.to(code).emit('status', { room: code, code, step: 'problemSelection', from: role });
+  });
+
+  socket.on('lightLevel', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const level = Number(payload.level);
+    if (!Number.isFinite(level)) return;
+
+    const normalized = Math.min(1, Math.max(0, level));
+    const state = roomStates.get(code) || {};
+    state.lightLevel = normalized;
+    roomStates.set(code, state);
+
+    const response = { room: code, code, level: normalized };
+    if (typeof payload.t === 'number' && Number.isFinite(payload.t)) {
+      response.t = Number(payload.t);
+    }
+
+    io.to(code).emit('lightLevel', response);
   });
 
   socket.on('disconnect', () => {

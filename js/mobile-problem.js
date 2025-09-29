@@ -10,7 +10,7 @@
 
   const destinations = {
     '1': 'mobile-next.html',
-    '2': 'mobile-next.html',
+    '2': 'mobile-gyro.html',
     '3': 'mobile-next.html',
     '4': 'mobile-next.html',
     '5': 'mobile-next.html'

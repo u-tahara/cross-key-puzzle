@@ -75,19 +75,38 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
   goBackToProblem();
 });
 
-const fallbackConfigKey = '2';
-const fallbackConfig = {
-  width: 6,
-  height: 6,
-  goal: { x: 5, y: 5 },
+const crossKeyMazeNamespace = window.CrossKeyMaze;
+
+const getDefaultMazeConfigKey = () => {
+  if (crossKeyMazeNamespace && typeof crossKeyMazeNamespace.DEFAULT_MAZE_KEY === 'string') {
+    return crossKeyMazeNamespace.DEFAULT_MAZE_KEY.trim() || '1';
+  }
+  return '1';
+};
+
+const fallbackConfigKey = getDefaultMazeConfigKey();
+const fallbackConfigFromNamespace = (() => {
+  try {
+    if (crossKeyMazeNamespace && typeof crossKeyMazeNamespace.getMazeConfig === 'function') {
+      return crossKeyMazeNamespace.getMazeConfig(fallbackConfigKey);
+    }
+  } catch (error) {
+    // ignore namespace lookup errors and use the hard-coded fallback
+  }
+  return null;
+})();
+
+const fallbackConfig = fallbackConfigFromNamespace || {
+  width: 5,
+  height: 5,
+  goal: { x: 4, y: 4 },
   start: { x: 0, y: 0 },
   map: [
-    [0, 0, 0, 1, 0, 0],
-    [1, 1, 0, 1, 0, 1],
-    [0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 1, 0],
-    [1, 1, 1, 0, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+    [1, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
   ],
 };
 
@@ -199,7 +218,7 @@ const updateMazeConfigByKey = (key) => {
   return true;
 };
 
-const initialConfigFromNamespace = getConfigFromNamespace(fallbackConfigKey);
+const initialConfigFromNamespace = fallbackConfigFromNamespace || getConfigFromNamespace(fallbackConfigKey);
 const initialConfig = initialConfigFromNamespace || fallbackConfig;
 applyMazeConfig(initialConfig, { resetPlayer: true, usingFallback: !initialConfigFromNamespace });
 

@@ -1,8 +1,7 @@
 const controller = document.querySelector('.controller');
 const code = new URLSearchParams(window.location.search).get('code');
-const controllerSocket = new WebSocket('https://ws.u-tahara.jp');
 
-const navigationSocket = io('https://ws.u-tahara.jp', {
+const navigationSocket = io('/', {
   transports: ['websocket'],
   withCredentials: true,
 });
@@ -78,10 +77,6 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
 
 setupBackNavigation();
 
-controllerSocket.addEventListener('open', () => {
-  controllerSocket.send(JSON.stringify({ type: 'resume', role: 'mobile', code }));
-});
-
 if (controller) {
   controller.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-direction]');
@@ -90,6 +85,6 @@ if (controller) {
     }
 
     const { direction } = button.dataset;
-    controllerSocket.send(JSON.stringify({ type: 'move', direction }));
+    navigationSocket.emit('moveDirection', { room: code, direction });
   });
 }

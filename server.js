@@ -76,6 +76,7 @@ const normalizeDestinations = (dest = {}) => {
 // ====== ソケット処理 ======
 io.on('connection', (socket) => {
   socket.data.room = null;
+  socket.data.role = null;
 
   // PC: ルーム作成
   socket.on('create', () => {
@@ -83,6 +84,7 @@ io.on('connection', (socket) => {
     if (socket.data.room) socket.leave(socket.data.room);
 
     socket.data.room = code;
+    socket.data.role = 'pc';
     socket.join(code);
 
     socket.emit('code', { code });
@@ -100,6 +102,7 @@ io.on('connection', (socket) => {
 
     if (socket.data.room) socket.leave(socket.data.room);
     socket.data.room = room;
+    socket.data.role = role;
     socket.join(room);
 
     const s = io.sockets.adapter.rooms.get(room);
@@ -129,6 +132,24 @@ io.on('connection', (socket) => {
       t: Number(p.t || Date.now())
     };
     socket.to(code).emit('move', data);
+  });
+
+  socket.on('moveDirection', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const direction = String(payload.direction || '').toLowerCase();
+    if (!['up', 'down', 'left', 'right'].includes(direction)) return;
+
+    const data = {
+      room: code,
+      code,
+      direction,
+      from: socket.data.role || undefined,
+      t: Number(payload.t || Date.now()),
+    };
+
+    socket.to(code).emit('moveDirection', data);
   });
 
   socket.on('problemSelected', (payload = {}) => {

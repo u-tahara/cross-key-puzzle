@@ -2,6 +2,43 @@ const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
 const socket = new WebSocket('https://ws.u-tahara.jp');
 
+const goBackToProblem = () => {
+  const baseUrl = 'pc-problem.html';
+  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+  window.location.replace(url);
+};
+
+const setupBackNavigation = () => {
+  if (!window.history || !window.history.pushState) {
+    return;
+  }
+
+  const stateKey = { page: 'pc-next' };
+
+  try {
+    const currentState = window.history.state || {};
+    window.history.replaceState({ ...currentState, ...stateKey }, document.title);
+  } catch (error) {
+    return;
+  }
+
+  const handlePopState = () => {
+    window.removeEventListener('popstate', handlePopState);
+    goBackToProblem();
+  };
+
+  window.addEventListener('popstate', handlePopState);
+
+  try {
+    const duplicatedState = { ...(window.history.state || {}), ...stateKey, duplicated: true };
+    window.history.pushState(duplicatedState, document.title);
+  } catch (error) {
+    window.removeEventListener('popstate', handlePopState);
+  }
+};
+
+setupBackNavigation();
+
 const width = 5;
 const height = 5;
 const goal = { x: 4, y: 4 };

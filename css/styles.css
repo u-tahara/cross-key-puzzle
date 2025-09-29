@@ -131,6 +131,69 @@ body {
     }
   }
 
+  &.page-problem-select {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+
+    main {
+      width: min(600px, 90vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      text-align: center;
+      background: #ffffff;
+      padding: 3rem 2.5rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .code-display {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+
+    .select-instruction {
+      margin: 0;
+      color: #555;
+    }
+
+    .problem-select {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+
+      button {
+        font-size: 1.2rem;
+        padding: 1rem 0;
+        border-radius: 1rem;
+        border: none;
+        background: #355cdd;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(53, 92, 221, 0.25);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+        &:hover,
+        &:focus-visible {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(53, 92, 221, 0.35);
+        }
+
+        &:active {
+          transform: translateY(1px);
+          box-shadow: 0 3px 10px rgba(53, 92, 221, 0.3);
+        }
+      }
+    }
+  }
+
   &.page-mobile-controller {
     display: flex;
     flex-direction: column;

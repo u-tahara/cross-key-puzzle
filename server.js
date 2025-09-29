@@ -57,6 +57,22 @@ const io = new Server(httpServer, {
 /** rooms = Map<roomCode, Set<socketId>> */
 const rooms = new Map();
 
+/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string } }> */
+const roomStates = new Map();
+
+const sanitizeCode = (value) => String(value || '')
+  .replace(/\s+/g, '')
+  .toUpperCase()
+  .slice(0, CODE_LEN);
+
+const normalizeDestinations = (dest = {}) => {
+  if (typeof dest !== 'object' || dest === null) return undefined;
+  const result = {};
+  if (dest.pc) result.pc = String(dest.pc);
+  if (dest.mobile) result.mobile = String(dest.mobile);
+  return Object.keys(result).length ? result : undefined;
+};
+
 // ====== ソケット処理 ======
 io.on('connection', (socket) => {
   socket.data.room = null;
@@ -75,7 +91,7 @@ io.on('connection', (socket) => {
 
   // PC/スマホ共通: 入室（スマホは {room, role:'mobile'} を送る）
   socket.on('join', (payload) => {
-    const room = String(payload?.room || '').replace(/\s+/g, '').toUpperCase().slice(0, CODE_LEN);
+    const room = sanitizeCode(payload?.room);
     const role = payload?.role || 'guest';
     if (!room || room.length !== CODE_LEN) {
       socket.emit('errorMsg', { code: 'BAD_CODE', message: `コードは${CODE_LEN}桁です` });
@@ -95,11 +111,16 @@ io.on('connection', (socket) => {
     if (count >= 2) {
       io.to(room).emit('paired', { code: room });
     }
+
+    const state = roomStates.get(room);
+    if (state) {
+      socket.emit('status', { room, code: room, ...state });
+    }
   });
 
   // 任意：スマホ → PC 操作の中継（テンプレ）
   socket.on('move', ({ room, payload } = {}) => {
-    const code = String(room || socket.data.room || '').toUpperCase().slice(0, CODE_LEN);
+    const code = sanitizeCode(room || socket.data.room);
     if (!code) return;
     const p = payload || {};
     const data = {
@@ -110,12 +131,34 @@ io.on('connection', (socket) => {
     socket.to(code).emit('move', data);
   });
 
+  socket.on('problemSelected', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const problem = String(payload.problem || '').trim();
+    if (!problem) return;
+
+    const destinations = normalizeDestinations(payload.destinations);
+
+    const data = { room: code, code, problem };
+    if (destinations) data.destinations = destinations;
+
+    roomStates.set(code, { step: 'problemSelected', problem, destinations });
+
+    io.to(code).emit('problemSelected', data);
+    io.to(code).emit('status', { room: code, code, step: 'problemSelected', problem, destinations });
+  });
+
   socket.on('disconnect', () => {
     const room = socket.data.room;
     if (!room) return;
     const s = io.sockets.adapter.rooms.get(room);
     const count = s ? s.size - 1 : 0;
     io.to(room).emit('memberUpdate', { type: 'leave', count });
+
+    if (!s || count <= 0) {
+      roomStates.delete(room);
+    }
   });
 });
 

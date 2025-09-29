@@ -25,7 +25,15 @@
     socket.emit('join', { room: code, role: 'mobile' });
   };
 
+  if (socket.connected) {
+    joinRoom();
+  }
+
   socket.on('connect', () => {
+    joinRoom();
+  });
+
+  socket.on('reconnect', () => {
     joinRoom();
   });
 
@@ -37,13 +45,15 @@
   };
 
   socket.on('problemSelected', (payload = {}) => {
-    const { room, problem, destinations } = payload;
-    if (!room || room !== code) return;
+    const { room, code: payloadCode, problem, destinations } = payload;
+    const roomCode = room || payloadCode;
+    if (!roomCode || roomCode !== code) return;
     goToProblem(problem, destinations);
   });
 
-  socket.on('status', ({ room, step, problem, destinations } = {}) => {
-    if (!room || room !== code) return;
+  socket.on('status', ({ room, code: payloadCode, step, problem, destinations } = {}) => {
+    const roomCode = room || payloadCode;
+    if (!roomCode || roomCode !== code) return;
     if (step === 'problemSelected') {
       goToProblem(problem, destinations);
     }

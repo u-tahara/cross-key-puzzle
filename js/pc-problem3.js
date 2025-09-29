@@ -3,6 +3,7 @@
   const code = params.get('code') || '';
   const main = document.querySelector('main[data-password]');
   const passwordDisplay = document.querySelector('[data-password-text]');
+  const passwordLead = document.querySelector('.password-lead');
   const codeDisplay = document.querySelector('[data-code-display]');
   const backButton = document.querySelector('.back-button');
   const body = document.body;
@@ -26,11 +27,26 @@
     return number;
   };
 
+  const DARKNESS_THRESHOLD = 0.35;
+
+  const updatePasswordVisibility = (level) => {
+    const isDarkEnough = level <= DARKNESS_THRESHOLD;
+    if (passwordDisplay) {
+      passwordDisplay.toggleAttribute('data-hidden', !isDarkEnough);
+    }
+
+    if (passwordLead) {
+      passwordLead.toggleAttribute('data-hidden', !isDarkEnough);
+    }
+
+  };
+
   const applyLightLevel = (rawLevel) => {
     const level = clamp(rawLevel);
     const shade = Math.round(level * 255);
     body.style.setProperty('--light-level', String(level));
     body.style.backgroundColor = `rgb(${shade}, ${shade}, ${shade})`;
+    updatePasswordVisibility(level);
   };
 
   applyLightLevel(1);

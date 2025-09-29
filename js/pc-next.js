@@ -1,8 +1,16 @@
 const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
 
-const navigationSocket = io('/', {
-  transports: ['websocket'],
+const resolveNavigationEndpoint = () => {
+  const helper = window.NavigationWs?.detectNavigationWsEndpoint;
+  if (typeof helper === 'function') {
+    return helper();
+  }
+  return 'https://ws.u-tahara.jp';
+};
+
+const navigationSocket = io(resolveNavigationEndpoint(), {
+  transports: ['websocket', 'polling'],
   withCredentials: true,
 });
 

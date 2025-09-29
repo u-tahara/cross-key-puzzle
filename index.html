@@ -1,14 +1,53 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cross Key Puzzle</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <h1>Cross Key Puzzle</h1>
-  <p>Coming soon.</p>
-  <script src="script.js"></script>
-</body>
+  <meta charset="UTF-8">
+  <title>PC接続画面</title>
+  <style>
+  #deviceSelect {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 2rem;
+  }
+  #deviceSelect button {
+    font-size: 1.6rem;
+    padding: 1.5rem 0;
+    border-radius: 1rem;
+    border: none;
+    background: #4caf50;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0.5rem 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+    width: 320px;
+    max-width: 90vw;
+    min-width: 220px;
+    display: block;
+  }
+  #deviceSelect button:hover {
+    background: #388e3c;
+  }
+
+  </style>
+  <body>
+    <main>
+      <div id="deviceSelect">
+        <button id="pcBtn">PCで開く</button>
+        <button id="spBtn">スマホで開く</button>
+      </div>
+      <script>
+        document.getElementById('pcBtn').addEventListener('click', function() {
+          window.location.href = 'pc.html';
+        });
+        document.getElementById('spBtn').addEventListener('click', function() {
+          window.location.href = 'mobile.html';
+        });
+      </script>
+    </main>
+  </body>
 </html>

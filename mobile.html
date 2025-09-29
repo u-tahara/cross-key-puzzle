@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PC接続画面</title>
+  <style>
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  #code {
+    font-size: 2rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.7rem;
+    border: 1px solid #ccc;
+    margin-bottom: 1.2rem;
+    text-align: center;
+    width: 220px;
+    max-width: 90vw;
+    box-sizing: border-box;
+    letter-spacing: 0.2em;
+  }
+  .js-connect {
+    font-size: 1.3rem;
+    padding: 0.8rem 2.5rem;
+    border-radius: 0.7rem;
+    border: none;
+    background: #4caf50;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+  }
+  .js-connect:hover {
+    background: #388e3c;
+  }
+  body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  </style>
+  <body>
+    <main>
+      <h1>コードを入力して接続</h1>
+      <input type="text" id="code" placeholder="6桁コード" />
+      <button class="js-connect">接続</button>
+    </main>
+  </body>
+  <script>
+    const socket = new WebSocket("ws://192.168.1.6:8081");
+
+    function connect() {
+      const code = document.getElementById('code').value;
+      socket.send(JSON.stringify({ type: "join", code }));
+    }
+
+    document.querySelector('.js-connect').addEventListener('click', connect);
+
+    socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'status' && data.role === 'mobile') {
+        location.href = `mobile-next.html?code=${data.code}`;
+      }
+      if (data.type === 'error') {
+        alert(data.text);
+      }
+    });
+  </script>
+</html>

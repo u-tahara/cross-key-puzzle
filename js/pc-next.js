@@ -1,8 +1,7 @@
 const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
-const controllerSocket = new WebSocket('https://ws.u-tahara.jp');
 
-const navigationSocket = io('https://ws.u-tahara.jp', {
+const navigationSocket = io('/', {
   transports: ['websocket'],
   withCredentials: true,
 });
@@ -92,6 +91,10 @@ const mazeMap = [
 const player = { x: 0, y: 0 };
 
 function drawMaze() {
+  if (!mazeContainer) {
+    return;
+  }
+
   mazeContainer.innerHTML = '';
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -109,24 +112,16 @@ function canMove(x, y) {
   return x >= 0 && x < width && y >= 0 && y < height && mazeMap[y][x] === 0;
 }
 
-controllerSocket.addEventListener('open', () => {
-  controllerSocket.send(JSON.stringify({ type: 'resume', role: 'pc', code }));
-  drawMaze();
-});
-
-controllerSocket.addEventListener('message', (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type !== 'move') {
-    return;
-  }
+const applyDirection = (direction) => {
+  if (!direction) return;
 
   let newX = player.x;
   let newY = player.y;
 
-  if (data.direction === 'up') newY -= 1;
-  if (data.direction === 'down') newY += 1;
-  if (data.direction === 'left') newX -= 1;
-  if (data.direction === 'right') newX += 1;
+  if (direction === 'up') newY -= 1;
+  if (direction === 'down') newY += 1;
+  if (direction === 'left') newX -= 1;
+  if (direction === 'right') newX += 1;
 
   if (!canMove(newX, newY)) {
     return;
@@ -139,4 +134,15 @@ controllerSocket.addEventListener('message', (event) => {
   if (player.x === goal.x && player.y === goal.y) {
     window.alert('ゴール！');
   }
+};
+
+drawMaze();
+
+navigationSocket.on('moveDirection', ({ room, code: payloadCode, direction } = {}) => {
+  const roomCode = room || payloadCode;
+  if (code && roomCode && roomCode !== code) {
+    return;
+  }
+
+  applyDirection(direction);
 });

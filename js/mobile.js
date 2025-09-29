@@ -51,11 +51,18 @@
   // ---- サーバーからのイベント ----
 
   // 旧実装互換: サーバーが「mobile用のstatus」を返すとき
-  socket.on('status', ({ role, code } = {}) => {
-    if (role === 'mobile') {
-      const c = code || currentCode;
-      location.href = `mobile-problem.html?code=${encodeURIComponent(c)}`;
+
+  socket.on('status', ({ role, code, step, problem, destinations } = {}) => {
+    if (role !== 'mobile') return;
+    const c = code || currentCode;
+
+    if (step === 'problemSelected') {
+      const mobileDest = destinations?.mobile || 'mobile-next.html';
+      location.href = `${mobileDest}?code=${encodeURIComponent(c)}`;
+      return;
     }
+
+    location.href = `mobile-problem.html?code=${encodeURIComponent(c)}`;
   });
 
   // 新実装: PCとスマホの“同時遷移”合図

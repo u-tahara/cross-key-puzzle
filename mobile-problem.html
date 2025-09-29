@@ -2,21 +2,20 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>スマホ - 問題選択</title>
+    <title>スマホ - 問題開始待機</title>
     <link rel="stylesheet" href="css/styles.css" />
-    <script src="js/mobile-problem.js" defer></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/mobile-wait.js" defer></script>
   </head>
-  <body class="page page-problem-select page-mobile-problem">
+  <body class="page page-mobile-wait">
     <main>
-      <h1>問題を選択</h1>
+      <h1>PC側で問題を選択中です</h1>
       <p class="code-display" data-code-display></p>
-      <p class="select-instruction">挑戦する問題番号を選んでください。</p>
-      <div class="problem-select">
-        <button type="button" data-problem="1">問題1</button>
-        <button type="button" data-problem="2">問題2</button>
-        <button type="button" data-problem="3">問題3</button>
-        <button type="button" data-problem="4">問題4</button>
-        <button type="button" data-problem="5">問題5</button>
+      <p class="wait-instruction">PCで問題が選択されるまでこのままお待ちください。</p>
+      <div class="wait-indicator" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
     </main>
   </body>

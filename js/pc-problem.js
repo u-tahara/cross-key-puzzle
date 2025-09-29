@@ -12,7 +12,7 @@
   const destinationMap = {
     '1': { pc: 'pc-next.html', mobile: 'mobile-next.html' },
     '2': { pc: 'pc-gyro.html', mobile: 'mobile-gyro.html' },
-    '3': { pc: 'pc-next.html', mobile: 'mobile-next.html' },
+    '3': { pc: 'pc-problem3.html', mobile: 'mobile-problem3.html' },
     '4': { pc: 'pc-next.html', mobile: 'mobile-next.html' },
     '5': { pc: 'pc-next.html', mobile: 'mobile-next.html' }
   };

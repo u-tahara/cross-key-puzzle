@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - 問題3: ライトシークレット</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/mobile-problem3.js" defer></script>
+  </head>
+  <body class="page page-mobile-problem3">
+    <main data-password="SHADOW-ACCESS">
+      <h1>問題3: 光と影のパスワード</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="status" data-status>カメラを同期すると背景が変化します。</p>
+      <button type="button" class="camera-button" data-camera-button>カメラ同期を開始</button>
+      <video class="preview" data-preview autoplay playsinline muted></video>
+      <form class="password-form" data-password-form>
+        <label for="passwordInput">パスワードを入力</label>
+        <input id="passwordInput" type="text" autocomplete="off" inputmode="text" data-password-input required />
+        <button type="submit">送信</button>
+      </form>
+      <p class="feedback" data-feedback aria-live="polite"></p>
+      <div class="page-footer">
+        <button type="button" class="back-button" data-back-button>問題選択に戻る</button>
+      </div>
+    </main>
+  </body>
+</html>

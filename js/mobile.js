@@ -26,6 +26,11 @@
       codeInput?.focus();
       return;
     }
+    if (!code || code.length !== 6) {            // ★ 6桁チェック
+    window.alert('6桁のコードを入力してください');
+    codeInput?.focus();
+    return;
+    }
     currentCode = code;
     // 二重押しガード
     if (connectButton) {

@@ -1,6 +1,28 @@
 const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
-const socket = new WebSocket('https://ws.u-tahara.jp');
+const controllerSocket = new WebSocket('https://ws.u-tahara.jp');
+
+const navigationSocket = io('https://ws.u-tahara.jp', {
+  transports: ['websocket'],
+  withCredentials: true,
+});
+
+const joinRoom = () => {
+  if (!code) return;
+  navigationSocket.emit('join', { room: code, role: 'pc' });
+};
+
+if (navigationSocket.connected) {
+  joinRoom();
+}
+
+navigationSocket.on('connect', joinRoom);
+navigationSocket.on('reconnect', joinRoom);
+
+const notifyBackNavigation = () => {
+  if (!code) return;
+  navigationSocket.emit('navigateBack', { room: code, role: 'pc' });
+};
 
 const goBackToProblem = () => {
   const baseUrl = 'pc-problem.html';
@@ -24,6 +46,7 @@ const setupBackNavigation = () => {
 
   const handlePopState = () => {
     window.removeEventListener('popstate', handlePopState);
+    notifyBackNavigation();
     goBackToProblem();
   };
 
@@ -36,6 +59,22 @@ const setupBackNavigation = () => {
     window.removeEventListener('popstate', handlePopState);
   }
 };
+
+const backButton = document.querySelector('.back-button');
+
+if (backButton) {
+  backButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    notifyBackNavigation();
+    goBackToProblem();
+  });
+}
+
+navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
+  const roomCode = room || payloadCode;
+  if (!roomCode || roomCode !== code) return;
+  goBackToProblem();
+});
 
 setupBackNavigation();
 
@@ -70,12 +109,12 @@ function canMove(x, y) {
   return x >= 0 && x < width && y >= 0 && y < height && mazeMap[y][x] === 0;
 }
 
-socket.addEventListener('open', () => {
-  socket.send(JSON.stringify({ type: 'resume', role: 'pc', code }));
+controllerSocket.addEventListener('open', () => {
+  controllerSocket.send(JSON.stringify({ type: 'resume', role: 'pc', code }));
   drawMaze();
 });
 
-socket.addEventListener('message', (event) => {
+controllerSocket.addEventListener('message', (event) => {
   const data = JSON.parse(event.data);
   if (data.type !== 'move') {
     return;

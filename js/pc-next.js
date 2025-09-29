@@ -139,12 +139,14 @@ function drawMaze() {
     return;
   }
 
+  mazeContainer.style.setProperty('--maze-width', String(width));
   mazeContainer.innerHTML = '';
   for (let y = 0; y < height; y += 1) {
+    const row = Array.isArray(mazeMap[y]) ? mazeMap[y] : [];
     for (let x = 0; x < width; x += 1) {
       const div = document.createElement('div');
       div.classList.add('cell');
-      if (mazeMap[y][x] === 1) div.classList.add('wall');
+      if (row[x] === 1) div.classList.add('wall');
       if (x === player.x && y === player.y) div.classList.add('player');
       if (x === goal.x && y === goal.y) div.classList.add('goal');
       mazeContainer.appendChild(div);

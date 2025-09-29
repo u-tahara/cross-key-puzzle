@@ -149,6 +149,21 @@ io.on('connection', (socket) => {
     io.to(code).emit('status', { room: code, code, step: 'problemSelected', problem, destinations });
   });
 
+  socket.on('navigateBack', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const role = typeof payload.role === 'string' ? payload.role : undefined;
+
+    roomStates.set(code, { step: 'problemSelection' });
+
+    const notifyPayload = { room: code, code };
+    if (role) notifyPayload.from = role;
+
+    socket.to(code).emit('navigateBack', notifyPayload);
+    io.to(code).emit('status', { room: code, code, step: 'problemSelection', from: role });
+  });
+
   socket.on('disconnect', () => {
     const room = socket.data.room;
     if (!room) return;

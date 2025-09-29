@@ -8,6 +8,7 @@
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
   }
 
+
   const destinationMap = {
     '1': { pc: 'pc-next.html', mobile: 'mobile-next.html' },
     '2': { pc: 'pc-next.html', mobile: 'mobile-next.html' },
@@ -65,9 +66,11 @@
     const entry = destinationMap[problem] || destinationMap['1'];
     if (!entry) return;
     const dest = entry.pc;
+
     const url = code ? `${dest}?code=${encodeURIComponent(code)}` : dest;
     window.location.href = url;
   };
+
 
   const notifySelection = (problem) => {
     if (!code) return;
@@ -111,6 +114,7 @@
       setTimeout(() => {
         goToProblem(problem);
       }, 120);
+
     });
   });
 })();

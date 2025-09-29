@@ -51,6 +51,7 @@
   // ---- サーバーからのイベント ----
 
   // 旧実装互換: サーバーが「mobile用のstatus」を返すとき
+
   socket.on('status', ({ role, code, step, problem, destinations } = {}) => {
     if (role !== 'mobile') return;
     const c = code || currentCode;

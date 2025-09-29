@@ -57,7 +57,7 @@ const io = new Server(httpServer, {
 /** rooms = Map<roomCode, Set<socketId>> */
 const rooms = new Map();
 
-/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string } }> */
+/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string }, maze?: { player: { x: number, y: number } } }> */
 const roomStates = new Map();
 
 const sanitizeCode = (value) => String(value || '')
@@ -71,6 +71,72 @@ const normalizeDestinations = (dest = {}) => {
   if (dest.pc) result.pc = String(dest.pc);
   if (dest.mobile) result.mobile = String(dest.mobile);
   return Object.keys(result).length ? result : undefined;
+};
+
+// ====== 迷路設定 ======
+const MAZE_WIDTH = 5;
+const MAZE_HEIGHT = 5;
+const MAZE_GOAL = { x: 4, y: 4 };
+const MAZE_START = { x: 0, y: 0 };
+const MAZE_MAP = [
+  [0, 1, 0, 0, 0],
+  [0, 1, 0, 1, 0],
+  [0, 0, 0, 1, 0],
+  [1, 1, 0, 1, 0],
+  [0, 0, 0, 0, 0],
+];
+
+const createInitialMazeState = () => ({
+  player: { ...MAZE_START },
+});
+
+const canMoveOnMaze = (x, y) => (
+  x >= 0
+  && x < MAZE_WIDTH
+  && y >= 0
+  && y < MAZE_HEIGHT
+  && MAZE_MAP[y][x] === 0
+);
+
+const applyMazeMove = (mazeState, direction) => {
+  if (!mazeState || !mazeState.player) return { moved: false };
+
+  let newX = mazeState.player.x;
+  let newY = mazeState.player.y;
+
+  if (direction === 'up') newY -= 1;
+  if (direction === 'down') newY += 1;
+  if (direction === 'left') newX -= 1;
+  if (direction === 'right') newX += 1;
+
+  if (!canMoveOnMaze(newX, newY)) {
+    return { moved: false };
+  }
+
+  mazeState.player = { x: newX, y: newY };
+
+  const goalReached = (newX === MAZE_GOAL.x) && (newY === MAZE_GOAL.y);
+
+  return { moved: true, goalReached };
+};
+
+const emitMazeState = (target, room, mazeState, { direction, moved, goalReached, from, t } = {}) => {
+  if (!mazeState || !mazeState.player) return;
+
+  const payload = {
+    room,
+    code: room,
+    player: { ...mazeState.player },
+    goal: { ...MAZE_GOAL },
+    moved: Boolean(moved),
+  };
+
+  if (typeof direction === 'string') payload.direction = direction;
+  if (typeof from === 'string') payload.from = from;
+  if (goalReached) payload.goalReached = true;
+  if (typeof t === 'number' && Number.isFinite(t)) payload.t = t;
+
+  target.emit('mazeState', payload);
 };
 
 // ====== ソケット処理 ======
@@ -118,6 +184,9 @@ io.on('connection', (socket) => {
     const state = roomStates.get(room);
     if (state) {
       socket.emit('status', { room, code: room, ...state });
+      if (state.maze) {
+        emitMazeState(socket, room, state.maze, { moved: false });
+      }
     }
   });
 
@@ -141,15 +210,29 @@ io.on('connection', (socket) => {
     const direction = String(payload.direction || '').toLowerCase();
     if (!['up', 'down', 'left', 'right'].includes(direction)) return;
 
-    const data = {
-      room: code,
-      code,
+    const state = roomStates.get(code) || {};
+    if (!state.maze) {
+      state.maze = createInitialMazeState();
+    }
+
+    const moveResult = applyMazeMove(state.maze, direction);
+    const timestamp = Number(payload.t || Date.now());
+    roomStates.set(code, state);
+
+    const meta = {
       direction,
+      moved: moveResult.moved,
+      goalReached: moveResult.goalReached,
       from: socket.data.role || undefined,
-      t: Number(payload.t || Date.now()),
+      t: timestamp,
     };
 
-    socket.to(code).emit('moveDirection', data);
+    if (!moveResult.moved) {
+      emitMazeState(socket, code, state.maze, meta);
+      return;
+    }
+
+    emitMazeState(io.to(code), code, state.maze, meta);
   });
 
   socket.on('problemSelected', (payload = {}) => {
@@ -161,13 +244,15 @@ io.on('connection', (socket) => {
 
     const destinations = normalizeDestinations(payload.destinations);
 
-    const data = { room: code, code, problem };
+    const maze = createInitialMazeState();
+
+    const data = { room: code, code, problem, maze };
     if (destinations) data.destinations = destinations;
 
-    roomStates.set(code, { step: 'problemSelected', problem, destinations });
+    roomStates.set(code, { step: 'problemSelected', problem, destinations, maze });
 
     io.to(code).emit('problemSelected', data);
-    io.to(code).emit('status', { room: code, code, step: 'problemSelected', problem, destinations });
+    io.to(code).emit('status', { room: code, code, step: 'problemSelected', problem, destinations, maze });
   });
 
   socket.on('navigateBack', (payload = {}) => {

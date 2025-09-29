@@ -89,6 +89,7 @@ const mazeMap = [
 ];
 
 const player = { x: 0, y: 0 };
+let hasGoalAlerted = false;
 
 function drawMaze() {
   if (!mazeContainer) {
@@ -108,41 +109,52 @@ function drawMaze() {
   }
 }
 
-function canMove(x, y) {
-  return x >= 0 && x < width && y >= 0 && y < height && mazeMap[y][x] === 0;
-}
-
-const applyDirection = (direction) => {
-  if (!direction) return;
-
-  let newX = player.x;
-  let newY = player.y;
-
-  if (direction === 'up') newY -= 1;
-  if (direction === 'down') newY += 1;
-  if (direction === 'left') newX -= 1;
-  if (direction === 'right') newX += 1;
-
-  if (!canMove(newX, newY)) {
+const updatePlayer = (position = {}) => {
+  const x = Number(position.x);
+  const y = Number(position.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
     return;
   }
 
-  player.x = newX;
-  player.y = newY;
+  player.x = x;
+  player.y = y;
   drawMaze();
+};
 
-  if (player.x === goal.x && player.y === goal.y) {
+const handleGoal = (goalReached) => {
+  if (goalReached && !hasGoalAlerted) {
+    hasGoalAlerted = true;
     window.alert('ゴール！');
+  }
+  if (!goalReached) {
+    hasGoalAlerted = false;
   }
 };
 
 drawMaze();
 
-navigationSocket.on('moveDirection', ({ room, code: payloadCode, direction } = {}) => {
+navigationSocket.on('status', ({ room, code: payloadCode, maze } = {}) => {
   const roomCode = room || payloadCode;
   if (code && roomCode && roomCode !== code) {
     return;
   }
 
-  applyDirection(direction);
+  if (maze && maze.player) {
+    updatePlayer(maze.player);
+    handleGoal(player.x === goal.x && player.y === goal.y);
+  }
+});
+
+navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, goalReached } = {}) => {
+  const roomCode = room || payloadCode;
+  if (code && roomCode && roomCode !== code) {
+    return;
+  }
+
+  if (!position) {
+    return;
+  }
+
+  updatePlayer(position);
+  handleGoal(Boolean(goalReached));
 });

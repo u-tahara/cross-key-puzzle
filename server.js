@@ -1,186 +1,135 @@
 /**
- * CrossKey Puzzle - WebSocket(Server) / Socket.IO 6桁コード版
- * ------------------------------------------------
- * 必要パッケージ:
- *   npm i socket.io
- *
- * 起動例:
- *   PORT=3001 \
- *   NODE_ENV=production \
- *   ALLOW_ORIGINS=https://u-tahara.jp,https://www.u-tahara.jp,http://localhost:8000 \
- *   node server.js
+ * CrossKey Puzzle - WebSocket(Server) / Socket.IO 6桁コード版（依存ファイルなし）
+ * - normalizeVisitedState / mergeVisitedStates を内蔵
+ * - そのまま /srv/crosskey-ws/server.js に上書きOK
  */
 
 import http from 'http';
 import { Server } from 'socket.io';
-import {
-  normalizeVisitedState,
-  mergeVisitedStates,
-} from './js/problem4-orientation-state.js';
 
-// ====== 迷路ロジック（サーバー側で自己完結） ======
-// NOTE: Keep the following settings in sync with js/maze-logic.js used by the PC/mobile clients.
-// （PC/Mobile側の迷路ロジックとも内容を揃えてください）
+// ====== 外部ファイルの代替（内蔵ユーティリティ） ======
+function normalizeVisitedState(src) {
+  const base = { north: false, east: false, south: false, west: false };
+  if (!src || typeof src !== 'object') return { ...base };
+  return {
+    north: Boolean(src.north),
+    east:  Boolean(src.east),
+    south: Boolean(src.south),
+    west:  Boolean(src.west),
+  };
+}
+function mergeVisitedStates(a, b) {
+  const A = normalizeVisitedState(a);
+  const B = normalizeVisitedState(b);
+  return {
+    north: A.north || B.north,
+    east:  A.east  || B.east,
+    south: A.south || B.south,
+    west:  A.west  || B.west,
+  };
+}
+
+// ====== 迷路ロジック（最小） ======
 const MAZE_CONFIGS = {
   '1': {
-    width: 5,
-    height: 5,
-    goal: { x: 4, y: 4 },
-    start: { x: 0, y: 0 },
+    width: 5, height: 5,
+    goal: { x: 4, y: 4 }, start: { x: 0, y: 0 },
     map: [
-      [0, 1, 0, 0, 0],
-      [0, 1, 0, 1, 0],
-      [0, 0, 0, 1, 0],
-      [1, 1, 0, 1, 0],
-      [0, 0, 0, 0, 0],
+      [0,1,0,0,0],
+      [0,1,0,1,0],
+      [0,0,0,1,0],
+      [1,1,0,1,0],
+      [0,0,0,0,0],
     ],
   },
   '2': {
-    width: 6,
-    height: 6,
-    goal: { x: 5, y: 5 },
-    start: { x: 0, y: 0 },
+    width: 6, height: 6,
+    goal: { x: 5, y: 5 }, start: { x: 0, y: 0 },
     map: [
-      [0, 0, 0, 1, 0, 0],
-      [1, 1, 0, 1, 0, 1],
-      [0, 0, 0, 0, 0, 0],
-      [0, 1, 1, 1, 1, 0],
-      [0, 0, 0, 0, 1, 0],
-      [1, 1, 1, 0, 0, 0],
+      [0,0,0,1,0,0],
+      [1,1,0,1,0,1],
+      [0,0,0,0,0,0],
+      [0,1,1,1,1,0],
+      [0,0,0,0,1,0],
+      [1,1,1,0,0,0],
     ],
   },
 };
-
 const DEFAULT_MAZE_KEY = '1';
-
 const resolveMazeConfigKey = (problem) => {
   const key = String(problem || '').trim();
   return Object.prototype.hasOwnProperty.call(MAZE_CONFIGS, key) ? key : DEFAULT_MAZE_KEY;
 };
-
-const getMazeConfig = (problemOrKey) => {
-  const key = resolveMazeConfigKey(problemOrKey);
-  return MAZE_CONFIGS[key];
-};
-
-const createInitialMazeState = (config = getMazeConfig(DEFAULT_MAZE_KEY)) => ({
-  player: { ...config.start },
-});
-
+const getMazeConfig = (problemOrKey) => MAZE_CONFIGS[resolveMazeConfigKey(problemOrKey)];
+const createInitialMazeState = (config = getMazeConfig(DEFAULT_MAZE_KEY)) => ({ player: { ...config.start } });
 const canMoveOnMaze = (config, x, y) => (
-  !!config
-  && Number.isFinite(x)
-  && Number.isFinite(y)
-  && x >= 0
-  && x < config.width
-  && y >= 0
-  && y < config.height
-  && Array.isArray(config.map)
-  && Array.isArray(config.map[y])
-  && config.map[y][x] === 0
+  !!config && Number.isFinite(x) && Number.isFinite(y) &&
+  x >= 0 && x < config.width && y >= 0 && y < config.height &&
+  Array.isArray(config.map) && Array.isArray(config.map[y]) && config.map[y][x] === 0
 );
-
 const applyMazeMove = (mazeState, direction, config) => {
   if (!mazeState || !mazeState.player || !config) return { moved: false };
-
-  let newX = mazeState.player.x;
-  let newY = mazeState.player.y;
-
+  let { x:newX, y:newY } = mazeState.player;
   if (direction === 'up') newY -= 1;
   if (direction === 'down') newY += 1;
   if (direction === 'left') newX -= 1;
   if (direction === 'right') newX += 1;
-
-  if (!canMoveOnMaze(config, newX, newY)) {
-    return { moved: false };
-  }
-
-  mazeState.player = { x: newX, y: newY };
-
-  const goalReached = (newX === config.goal.x) && (newY === config.goal.y);
-
-  return { moved: true, goalReached };
+  if (!canMoveOnMaze(config, newX, newY)) return { moved: false };
+  mazeState.player = { x:newX, y:newY };
+  return { moved: true, goalReached: (newX === config.goal.x && newY === config.goal.y) };
 };
 
-// ====== 設定 ======
+// ====== 基本設定 ======
 const PORT = Number(process.env.PORT || 3001);
-
-// 許可Origin（カンマ区切り）をSetに
-const parseOrigins = () => (process.env.ALLOW_ORIGINS || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
+const parseOrigins = () => (process.env.ALLOW_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
 const ALLOW = new Set(parseOrigins());
 
-// ====== ユーティリティ ======
-const CODE_LEN = 6; // ★ ここが6桁
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 紛らわしい文字(I,O,1,0)除外
-const genCode = () =>
-  Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+// ====== コード（6桁） ======
+const CODE_LEN = 6;
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // I,O,1,0 除外
+const genCode = () => Array.from({length: CODE_LEN}, () => CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]).join('');
 
-// ====== HTTP (healthz) ======
+// ====== HTTP（/healthz /version） ======
 const httpServer = http.createServer((req, res) => {
-  if (req.url === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('ok'); return;
-  }
+  if (req.url === '/healthz') { res.writeHead(200, {'Content-Type':'text/plain'}); res.end('ok'); return; }
   if (req.url === '/version') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ name: 'crosskey-ws', port: PORT, allowOrigins: [...ALLOW], codeLen: CODE_LEN })); return;
+    res.writeHead(200, {'Content-Type':'application/json'});
+    res.end(JSON.stringify({ name:'crosskey-ws', port:PORT, allowOrigins:[...ALLOW], codeLen:CODE_LEN })); return;
   }
   res.writeHead(404); res.end();
 });
 
-// ====== Socket.IO 初期化 ======
+// ====== Socket.IO ======
 const io = new Server(httpServer, {
   cors: {
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);        // file:// を許可（開発用）
-      return cb(null, ALLOW.has(origin));        // 完全一致で許可
-    },
+    origin: (origin, cb) => { if (!origin) return cb(null, true); return cb(null, ALLOW.has(origin)); },
     credentials: true,
   },
-  transports: ['websocket', 'polling'],
-  maxHttpBufferSize: 256 * 1024,
+  transports: ['websocket','polling'],
+  maxHttpBufferSize: 256*1024,
 });
 
-// ====== ルーム状態（超最小） ======
-/** rooms = Map<roomCode, Set<socketId>> */
-const rooms = new Map();
+// ルーム状態
+const rooms = new Map(); // Map<roomCode, Set<socketId>>（必要なら拡張）
+const roomStates = new Map(); // Map<roomCode, {...}>
 
-/** roomStates = Map<roomCode, { step: string, problem?: string, destinations?: { pc?: string, mobile?: string }, maze?: { player: { x: number, y: number } }, mazeConfigKey?: string }> */
-const roomStates = new Map();
-
-const sanitizeCode = (value) => String(value || '')
-  .replace(/\s+/g, '')
-  .toUpperCase()
-  .slice(0, CODE_LEN);
-
-const normalizeDestinations = (dest = {}) => {
+const sanitizeCode = (v) => String(v || '').replace(/\s+/g,'').toUpperCase().slice(0, CODE_LEN);
+const normalizeDestinations = (dest={}) => {
   if (typeof dest !== 'object' || dest === null) return undefined;
-  const result = {};
-  if (dest.pc) result.pc = String(dest.pc);
-  if (dest.mobile) result.mobile = String(dest.mobile);
-  return Object.keys(result).length ? result : undefined;
+  const out = {}; if (dest.pc) out.pc = String(dest.pc); if (dest.mobile) out.mobile = String(dest.mobile);
+  return Object.keys(out).length ? out : undefined;
 };
-
-const emitMazeState = (target, room, mazeState, { direction, moved, goalReached, from, t } = {}, config = getMazeConfig(DEFAULT_MAZE_KEY)) => {
+const emitMazeState = (target, room, mazeState, {direction, moved, goalReached, from, t}={}, config=getMazeConfig(DEFAULT_MAZE_KEY)) => {
   if (!mazeState || !mazeState.player) return;
-
-  const payload = {
-    room,
-    code: room,
-    player: { ...mazeState.player },
-    goal: { ...config.goal },
-    moved: Boolean(moved),
-  };
-
+  const payload = { room, code:room, player:{...mazeState.player}, goal:{...config.goal}, moved: !!moved };
   if (typeof direction === 'string') payload.direction = direction;
-  if (typeof from === 'string') payload.from = from;
+  if (from) payload.from = from;
   if (goalReached) payload.goalReached = true;
-  if (typeof t === 'number' && Number.isFinite(t)) payload.t = t;
-
+  if (Number.isFinite(t)) payload.t = Number(t);
   target.emit('mazeState', payload);
 };
 
-// ====== ソケット処理 ======
+// ソケット処理
 io.on('connection', (socket) => {
   socket.data.room = null;
   socket.data.role = null;
@@ -189,39 +138,27 @@ io.on('connection', (socket) => {
   socket.on('create', () => {
     const code = genCode();
     if (socket.data.room) socket.leave(socket.data.room);
-
-    socket.data.room = code;
-    socket.data.role = 'pc';
+    socket.data.room = code; socket.data.role = 'pc';
     socket.join(code);
-
     socket.emit('code', { code });
-    socket.emit('status', { role: 'pc', code }); // PC待機通知（遷移はしない）
+    socket.emit('status', { role:'pc', code }); // 待機通知（遷移はしない）
   });
 
-  // PC/スマホ共通: 入室（スマホは {room, role:'mobile'} を送る）
+  // PC/スマホ: 入室
   socket.on('join', (payload) => {
     const room = sanitizeCode(payload?.room);
     const role = payload?.role || 'guest';
-    if (!room || room.length !== CODE_LEN) {
-      socket.emit('errorMsg', { code: 'BAD_CODE', message: `コードは${CODE_LEN}桁です` });
-      return;
-    }
-
+    if (!room || room.length !== CODE_LEN) { socket.emit('errorMsg', { code:'BAD_CODE', message:`コードは${CODE_LEN}桁です` }); return; }
     if (socket.data.room) socket.leave(socket.data.room);
-    socket.data.room = room;
-    socket.data.role = role;
+    socket.data.room = room; socket.data.role = role;
     socket.join(room);
 
     const s = io.sockets.adapter.rooms.get(room);
     const count = s ? s.size : 1;
+    io.to(room).emit('memberUpdate', { type:'join', role, count });
+    if (count >= 2) io.to(room).emit('paired', { code: room }); // 同時遷移合図
 
-    io.to(room).emit('memberUpdate', { type: 'join', role, count });
-
-    // 二者が揃ったら同時遷移の合図
-    if (count >= 2) {
-      io.to(room).emit('paired', { code: room });
-    }
-
+    // 既存ステートがあれば同期
     const state = roomStates.get(room);
     if (state) {
       const mazeKey = resolveMazeConfigKey(state.mazeConfigKey || state.problem);
@@ -229,13 +166,11 @@ io.on('connection', (socket) => {
       state.mazeConfigKey = mazeKey;
       roomStates.set(room, state);
       socket.emit('status', { room, code: room, ...state });
-      if (state.maze) {
-        emitMazeState(socket, room, state.maze, { moved: false }, mazeConfig);
-      }
+      if (state.maze) emitMazeState(socket, room, state.maze, { moved:false }, mazeConfig);
     }
   });
 
-  // 任意：スマホ → PC 操作の中継（テンプレ）
+  // 汎用 move（必要に応じて）
   socket.on('move', ({ room, payload } = {}) => {
     const code = sanitizeCode(room || socket.data.room);
     if (!code) return;
@@ -243,204 +178,128 @@ io.on('connection', (socket) => {
     const data = {
       x: Math.max(-1, Math.min(1, Number(p.x || 0))),
       y: Math.max(-1, Math.min(1, Number(p.y || 0))),
-      t: Number(p.t || Date.now())
+      t: Number(p.t || Date.now()),
     };
     socket.to(code).emit('move', data);
   });
 
+  // 迷路の方向移動
   socket.on('moveDirection', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
-
     const direction = String(payload.direction || '').toLowerCase();
-    if (!['up', 'down', 'left', 'right'].includes(direction)) return;
+    if (!['up','down','left','right'].includes(direction)) return;
 
     const state = roomStates.get(code) || {};
     const mazeKey = resolveMazeConfigKey(state.mazeConfigKey || state.problem);
     const mazeConfig = getMazeConfig(mazeKey);
-
-    if (!state.maze) {
-      state.maze = createInitialMazeState(mazeConfig);
-    }
-
-    state.mazeConfigKey = mazeKey;
-    roomStates.set(code, state);
+    if (!state.maze) state.maze = createInitialMazeState(mazeConfig);
+    state.mazeConfigKey = mazeKey; roomStates.set(code, state);
 
     const moveResult = applyMazeMove(state.maze, direction, mazeConfig);
     const timestamp = Number(payload.t || Date.now());
+    const meta = { direction, moved: moveResult.moved, goalReached: moveResult.goalReached, from: socket.data.role || undefined, t: timestamp };
 
-    const meta = {
-      direction,
-      moved: moveResult.moved,
-      goalReached: moveResult.goalReached,
-      from: socket.data.role || undefined,
-      t: timestamp,
-    };
-
-    if (!moveResult.moved) {
-      emitMazeState(socket, code, state.maze, meta, mazeConfig);
-      return;
-    }
-
+    if (!moveResult.moved) { emitMazeState(socket, code, state.maze, meta, mazeConfig); return; }
     emitMazeState(io.to(code), code, state.maze, meta, mazeConfig);
   });
 
+  // 問題選択
   socket.on('problemSelected', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
-
     const problem = String(payload.problem || '').trim();
     if (!problem) return;
 
     const destinations = normalizeDestinations(payload.destinations);
-
     const mazeKey = resolveMazeConfigKey(problem);
     const mazeConfig = getMazeConfig(mazeKey);
     const maze = createInitialMazeState(mazeConfig);
 
-    const state = {
-      step: 'problemSelected',
-      problem,
-      destinations,
-      maze,
-      mazeConfigKey: mazeKey,
-    };
-
-    if (problem === '3') {
-      state.lightLevel = 1;
-    }
-
-    if (problem === '4') {
-      state.orientation = {
-        heading: null,
-        direction: null,
-        visited: {
-          north: false,
-          east: false,
-          south: false,
-          west: false,
-        },
-      };
-    }
+    const state = { step:'problemSelected', problem, destinations, maze, mazeConfigKey: mazeKey };
+    if (problem === '3') state.lightLevel = 1;
+    if (problem === '4') state.orientation = { heading:null, direction:null, visited:{ north:false, east:false, south:false, west:false } };
 
     roomStates.set(code, state);
 
-    const data = { room: code, code, problem, maze, mazeConfigKey: mazeKey };
+    const data = { room:code, code, problem, maze, mazeConfigKey: mazeKey };
     if (destinations) data.destinations = destinations;
-
     io.to(code).emit('problemSelected', data);
-    io.to(code).emit('status', { room: code, code, ...state });
+    io.to(code).emit('status', { room:code, code, ...state });
   });
 
+  // 戻る
   socket.on('navigateBack', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
-
     const role = typeof payload.role === 'string' ? payload.role : undefined;
-
-    roomStates.set(code, { step: 'problemSelection' });
-
-    const notifyPayload = { room: code, code };
-    if (role) notifyPayload.from = role;
-
+    roomStates.set(code, { step:'problemSelection' });
+    const notifyPayload = { room:code, code }; if (role) notifyPayload.from = role;
     socket.to(code).emit('navigateBack', notifyPayload);
-    io.to(code).emit('status', { room: code, code, step: 'problemSelection', from: role });
+    io.to(code).emit('status', { room:code, code, step:'problemSelection', from: role });
   });
 
+  // 方位（Problem4）
   socket.on('heading', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
-
     const headingValue = Number(payload.heading);
     if (!Number.isFinite(headingValue)) return;
-
     const normalizedHeading = ((headingValue % 360) + 360) % 360;
 
     const rawDirection = typeof payload.direction === 'string' ? payload.direction.toLowerCase() : undefined;
-    const validDirections = new Set(['north', 'east', 'south', 'west']);
-    const direction = rawDirection && validDirections.has(rawDirection) ? rawDirection : undefined;
+    const valid = new Set(['north','east','south','west']);
+    const direction = rawDirection && valid.has(rawDirection) ? rawDirection : undefined;
 
     const state = roomStates.get(code) || {};
-    const currentOrientation = state.orientation || {};
-
-    let visited = normalizeVisitedState(currentOrientation.visited);
-    if (payload && typeof payload === 'object') {
-      visited = mergeVisitedStates(visited, payload.visited);
-    }
+    const current = state.orientation || {};
+    let visited = normalizeVisitedState(current.visited);
+    if (payload && typeof payload === 'object') visited = mergeVisitedStates(visited, payload.visited);
 
     const orientation = {
       heading: normalizedHeading,
-      direction: direction || currentOrientation.direction || null,
+      direction: direction || current.direction || null,
       visited,
       updatedAt: Date.now(),
     };
-
-    if (direction) {
-      orientation.direction = direction;
-      orientation.visited[direction] = true;
-    } else if (payload && Object.prototype.hasOwnProperty.call(payload, 'direction') && payload.direction === null) {
+    if (direction) { orientation.direction = direction; orientation.visited[direction] = true; }
+    else if (Object.prototype.hasOwnProperty.call(payload, 'direction') && payload.direction === null) {
       orientation.direction = null;
     }
 
-    state.orientation = orientation;
-    roomStates.set(code, state);
+    state.orientation = orientation; roomStates.set(code, state);
 
-    const response = {
-      room: code,
-      code,
-      heading: orientation.heading,
-      visited: { ...orientation.visited },
-    };
-
-    if (orientation.direction) {
-      response.direction = orientation.direction;
-    }
-
-    if (typeof payload.t === 'number' && Number.isFinite(payload.t)) {
-      response.t = Number(payload.t);
-    }
-
-    if (socket.data?.role) {
-      response.from = socket.data.role;
-    }
-
+    const response = { room:code, code, heading: orientation.heading, visited: { ...orientation.visited } };
+    if (orientation.direction) response.direction = orientation.direction;
+    if (Number.isFinite(payload.t)) response.t = Number(payload.t);
+    if (socket.data?.role) response.from = socket.data.role;
     io.to(code).emit('heading', response);
   });
 
+  // 明るさ（Problem3）
   socket.on('lightLevel', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
-
     const level = Number(payload.level);
     if (!Number.isFinite(level)) return;
-
     const normalized = Math.min(1, Math.max(0, level));
     const state = roomStates.get(code) || {};
-    state.lightLevel = normalized;
-    roomStates.set(code, state);
-
-    const response = { room: code, code, level: normalized };
-    if (typeof payload.t === 'number' && Number.isFinite(payload.t)) {
-      response.t = Number(payload.t);
-    }
-
+    state.lightLevel = normalized; roomStates.set(code, state);
+    const response = { room:code, code, level: normalized };
+    if (Number.isFinite(payload.t)) response.t = Number(payload.t);
     io.to(code).emit('lightLevel', response);
   });
 
   socket.on('disconnect', () => {
-    const room = socket.data.room;
-    if (!room) return;
+    const room = socket.data.room; if (!room) return;
     const s = io.sockets.adapter.rooms.get(room);
     const count = s ? s.size - 1 : 0;
-    io.to(room).emit('memberUpdate', { type: 'leave', count });
-
-    if (!s || count <= 0) {
-      roomStates.delete(room);
-    }
+    io.to(room).emit('memberUpdate', { type:'leave', count });
+    if (!s || count <= 0) roomStates.delete(room);
   });
 });
 
-// ====== 起動 ======
+// 起動
 httpServer.listen(PORT, () => {
   console.log(`[start] Socket.IO on ${PORT}`);
   console.log(`[allow]`, [...ALLOW], `codeLen=${CODE_LEN}`);

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - 問題4: コンパスシークエンス</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/mobile-problem4.js" defer></script>
+  </head>
+  <body class="page page-mobile-problem4">
+    <main data-password="NAVIGATOR">
+      <h1>問題4: 方位のキーワード</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="instruction">
+        「コンパス開始」ボタンを押してスマホの方位センサーを有効化し、
+        北・東・南・西を順番に向いてみましょう。PC側に断片が現れます。
+      </p>
+      <button type="button" class="compass-button" data-permission-button>
+        コンパスを開始
+      </button>
+      <p class="status" data-status>コンパスを開始すると方位が表示されます。</p>
+      <p class="heading-display" data-heading>方位角: --°</p>
+      <p class="direction-display" data-direction>方向: 未検出</p>
+      <ul class="compass-progress" data-progress>
+        <li data-direction-item="north">北(N): 未達成</li>
+        <li data-direction-item="east">東(E): 未達成</li>
+        <li data-direction-item="south">南(S): 未達成</li>
+        <li data-direction-item="west">西(W): 未達成</li>
+      </ul>
+      <form class="password-form" data-password-form>
+        <label for="passwordInput">パスワードを入力</label>
+        <input
+          id="passwordInput"
+          type="text"
+          autocomplete="off"
+          inputmode="text"
+          data-password-input
+          required
+        />
+        <p class="password-hint">
+          北→東→南→西の順に現れた断片をつなげるとパスワードになります。
+        </p>
+        <button type="submit">送信</button>
+      </form>
+      <p class="feedback" data-feedback aria-live="polite"></p>
+      <div class="page-footer">
+        <button type="button" class="back-button" data-back-button>問題選択に戻る</button>
+      </div>
+    </main>
+  </body>
+</html>

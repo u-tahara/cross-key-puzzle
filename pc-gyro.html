@@ -2,15 +2,18 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>PC - 迷路</title>
+    <title>PC - ジャイロ迷路</title>
     <link rel="stylesheet" href="css/styles.css" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="js/maze-logic.js" defer></script>
     <script src="js/navigation-endpoint.js" defer></script>
-    <script src="js/pc-next.js" defer></script>
+    <script src="js/pc-gyro.js" defer></script>
   </head>
-  <body class="page page-pc-maze">
-    <h1>迷路</h1>
+  <body class="page page-pc-maze page-pc-gyro">
+    <h1>ジャイロ迷路</h1>
+    <p class="maze-description">
+      スマホを傾けてキャラクターをゴールまで導いてください。PC側では迷路の様子がリアルタイムで表示されます。
+    </p>
     <div id="maze" aria-live="polite"></div>
     <div class="page-footer">
       <a class="back-button" href="pc-problem.html">問題に戻る</a>

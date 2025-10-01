@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PC - 問題4: コンパスシークエンス</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/pc-problem4.js" defer></script>
+  </head>
+  <body class="page page-pc-problem4">
+    <main data-password="NAVIGATOR">
+      <h1>問題4: 指針が示す言葉</h1>
+      <p class="sr-only" data-code-display></p>
+      <p class="instructions" aria-live="polite">
+        スマホを北・東・南・西に向けると、それぞれの方向から文字の断片が現れます。
+        断片を北→東→南→西の順に並べるとパスワードになります。
+      </p>
+      <section class="compass-status">
+        <p class="heading" data-heading-display>方位角: --°</p>
+        <p class="direction" data-direction-display>方向: 未検出</p>
+      </section>
+      <section class="compass-fragments" aria-live="polite">
+        <article class="fragment" data-fragment="north">
+          <h2>北 (N)</h2>
+          <p class="fragment-text" data-fragment-text>--</p>
+          <p class="fragment-hint">スマホを北に向けると現れます。</p>
+        </article>
+        <article class="fragment" data-fragment="east">
+          <h2>東 (E)</h2>
+          <p class="fragment-text" data-fragment-text>--</p>
+          <p class="fragment-hint">スマホを東に向けると現れます。</p>
+        </article>
+        <article class="fragment" data-fragment="south">
+          <h2>南 (S)</h2>
+          <p class="fragment-text" data-fragment-text>--</p>
+          <p class="fragment-hint">スマホを南に向けると現れます。</p>
+        </article>
+        <article class="fragment" data-fragment="west">
+          <h2>西 (W)</h2>
+          <p class="fragment-text" data-fragment-text>--</p>
+          <p class="fragment-hint">スマホを西に向けると現れます。</p>
+        </article>
+      </section>
+      <section class="password-summary" aria-live="polite">
+        <h2>完成したパスワード</h2>
+        <p class="password-display" data-password-display data-hidden>????</p>
+      </section>
+      <div class="page-footer">
+        <a class="back-button" href="pc-problem.html">問題選択に戻る</a>
+      </div>
+    </main>
+  </body>
+</html>

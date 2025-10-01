@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <title>スマホコントローラー</title>
     <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/navigation-endpoint.js" defer></script>
     <script src="js/mobile-next.js" defer></script>
   </head>
   <body class="page page-mobile-controller">
@@ -13,6 +15,10 @@
       <button type="button" data-direction="left">←</button>
       <button type="button" data-direction="down">↓</button>
       <button type="button" data-direction="right">→</button>
+    </div>
+    <p class="controller-status" aria-live="polite"></p>
+    <div class="page-footer">
+      <a class="back-button" href="mobile-problem.html">問題に戻る</a>
     </div>
   </body>
 </html>

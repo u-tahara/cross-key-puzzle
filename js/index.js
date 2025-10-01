@@ -1,5 +1,6 @@
 const pcButton = document.getElementById('pcBtn');
 const mobileButton = document.getElementById('spBtn');
+const autoRedirectMessage = document.getElementById('autoRedirectMessage');
 
 const redirectTo = (path) => {
   if (!path) return;
@@ -57,6 +58,12 @@ if (mobileButton) {
 window.addEventListener('DOMContentLoaded', () => {
   const destination = determineDestination();
   if (destination) {
-    redirectTo(destination);
+    if (autoRedirectMessage) {
+      autoRedirectMessage.hidden = false;
+      autoRedirectMessage.textContent = 'PC or スマホ 端末で入室しました';
+    }
+    setTimeout(() => {
+      redirectTo(destination);
+    }, 2000);
   }
 });

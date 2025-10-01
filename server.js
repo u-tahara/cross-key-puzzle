@@ -13,6 +13,10 @@
 
 import http from 'http';
 import { Server } from 'socket.io';
+import {
+  normalizeVisitedState,
+  mergeVisitedStates,
+} from './js/problem4-orientation-state.js';
 
 // ====== 迷路ロジック（サーバー側で自己完結） ======
 // NOTE: Keep the following settings in sync with js/maze-logic.js used by the PC/mobile clients.
@@ -359,14 +363,10 @@ io.on('connection', (socket) => {
     const state = roomStates.get(code) || {};
     const currentOrientation = state.orientation || {};
 
-    const normalizeVisited = (value = {}) => ({
-      north: Boolean(value.north),
-      east: Boolean(value.east),
-      south: Boolean(value.south),
-      west: Boolean(value.west),
-    });
-
-    const visited = normalizeVisited(currentOrientation.visited);
+    let visited = normalizeVisitedState(currentOrientation.visited);
+    if (payload && typeof payload === 'object') {
+      visited = mergeVisitedStates(visited, payload.visited);
+    }
 
     const orientation = {
       heading: normalizedHeading,
@@ -378,6 +378,8 @@ io.on('connection', (socket) => {
     if (direction) {
       orientation.direction = direction;
       orientation.visited[direction] = true;
+    } else if (payload && Object.prototype.hasOwnProperty.call(payload, 'direction') && payload.direction === null) {
+      orientation.direction = null;
     }
 
     state.orientation = orientation;

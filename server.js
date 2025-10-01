@@ -306,6 +306,19 @@ io.on('connection', (socket) => {
       state.lightLevel = 1;
     }
 
+    if (problem === '4') {
+      state.orientation = {
+        heading: null,
+        direction: null,
+        visited: {
+          north: false,
+          east: false,
+          south: false,
+          west: false,
+        },
+      };
+    }
+
     roomStates.set(code, state);
 
     const data = { room: code, code, problem, maze, mazeConfigKey: mazeKey };
@@ -328,6 +341,68 @@ io.on('connection', (socket) => {
 
     socket.to(code).emit('navigateBack', notifyPayload);
     io.to(code).emit('status', { room: code, code, step: 'problemSelection', from: role });
+  });
+
+  socket.on('heading', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const headingValue = Number(payload.heading);
+    if (!Number.isFinite(headingValue)) return;
+
+    const normalizedHeading = ((headingValue % 360) + 360) % 360;
+
+    const rawDirection = typeof payload.direction === 'string' ? payload.direction.toLowerCase() : undefined;
+    const validDirections = new Set(['north', 'east', 'south', 'west']);
+    const direction = rawDirection && validDirections.has(rawDirection) ? rawDirection : undefined;
+
+    const state = roomStates.get(code) || {};
+    const currentOrientation = state.orientation || {};
+
+    const normalizeVisited = (value = {}) => ({
+      north: Boolean(value.north),
+      east: Boolean(value.east),
+      south: Boolean(value.south),
+      west: Boolean(value.west),
+    });
+
+    const visited = normalizeVisited(currentOrientation.visited);
+
+    const orientation = {
+      heading: normalizedHeading,
+      direction: direction || currentOrientation.direction || null,
+      visited,
+      updatedAt: Date.now(),
+    };
+
+    if (direction) {
+      orientation.direction = direction;
+      orientation.visited[direction] = true;
+    }
+
+    state.orientation = orientation;
+    roomStates.set(code, state);
+
+    const response = {
+      room: code,
+      code,
+      heading: orientation.heading,
+      visited: { ...orientation.visited },
+    };
+
+    if (orientation.direction) {
+      response.direction = orientation.direction;
+    }
+
+    if (typeof payload.t === 'number' && Number.isFinite(payload.t)) {
+      response.t = Number(payload.t);
+    }
+
+    if (socket.data?.role) {
+      response.from = socket.data.role;
+    }
+
+    io.to(code).emit('heading', response);
   });
 
   socket.on('lightLevel', (payload = {}) => {

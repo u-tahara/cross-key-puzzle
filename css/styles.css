@@ -465,6 +465,132 @@ body {
     }
   }
 
+  &.page-pc-problem4 {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #1b2d5c 0%, #0e152b 100%);
+    color: #f0f4ff;
+
+    main {
+      width: min(960px, 92vw);
+      background: rgba(8, 14, 32, 0.78);
+      backdrop-filter: blur(8px);
+      border-radius: 1.8rem;
+      padding: 3rem 3.5rem;
+      box-shadow: 0 28px 48px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      letter-spacing: 0.08em;
+    }
+
+    .instructions {
+      margin: 0 auto;
+      max-width: 640px;
+      text-align: center;
+      line-height: 1.7;
+      color: rgba(240, 244, 255, 0.8);
+    }
+
+    .compass-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 2.5rem;
+      justify-content: center;
+      font-weight: 600;
+
+      .heading,
+      .direction {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+    }
+
+    .compass-fragments {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .fragment {
+      background: rgba(12, 22, 48, 0.85);
+      border-radius: 1.2rem;
+      padding: 1.5rem;
+      border: 1px solid rgba(135, 158, 255, 0.15);
+      box-shadow: inset 0 0 0 1px rgba(135, 158, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+      h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+      }
+
+      .fragment-text {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+      }
+
+      .fragment-hint {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(240, 244, 255, 0.7);
+      }
+
+      &.is-active {
+        transform: translateY(-6px);
+        border-color: rgba(135, 158, 255, 0.45);
+        box-shadow: 0 16px 30px rgba(48, 68, 160, 0.35);
+      }
+
+      &.is-found .fragment-text {
+        color: #9db7ff;
+      }
+    }
+
+    .password-summary {
+      text-align: center;
+
+      h2 {
+        margin: 0 0 0.6rem;
+        letter-spacing: 0.12em;
+        font-size: 1rem;
+        text-transform: uppercase;
+        color: rgba(240, 244, 255, 0.7);
+      }
+
+      .password-display {
+        margin: 0;
+        font-size: clamp(2rem, 6vw, 3.2rem);
+        letter-spacing: 0.4em;
+        font-weight: 800;
+        color: #ffffff;
+        transition: opacity 0.3s ease;
+
+        &[data-hidden] {
+          opacity: 0.2;
+        }
+      }
+    }
+
+    .page-footer {
+      text-align: center;
+    }
+  }
+
   &.page-mobile-problem3 {
     min-height: 100vh;
     display: flex;
@@ -599,6 +725,160 @@ body {
       display: flex;
       justify-content: center;
       margin-top: 0.5rem;
+    }
+  }
+
+  &.page-mobile-problem4 {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #eef4ff 0%, #f9fbff 100%);
+
+    main {
+      width: min(520px, 92vw);
+      background: #ffffff;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem 3rem;
+      box-shadow: 0 16px 36px rgba(29, 56, 119, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 4vw, 1.8rem);
+      text-align: center;
+    }
+
+    .code-display {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-align: center;
+      color: #2b4a9e;
+    }
+
+    .instruction {
+      margin: 0;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      color: #3a4a6a;
+    }
+
+    .compass-button {
+      align-self: center;
+      padding: 0.85rem 2.4rem;
+      border-radius: 999px;
+      border: none;
+      background: #2b4a9e;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(43, 74, 158, 0.24);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      &:not(:disabled):hover,
+      &:not(:disabled):focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(43, 74, 158, 0.32);
+      }
+    }
+
+    .status {
+      margin: 0;
+      min-height: 1.5rem;
+      color: #1b3a84;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .heading-display,
+    .direction-display {
+      margin: 0;
+      text-align: center;
+      font-weight: 600;
+      color: #324066;
+    }
+
+    .compass-progress {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 0;
+      display: grid;
+      gap: 0.5rem;
+
+      li {
+        padding: 0.6rem 0.8rem;
+        border-radius: 0.75rem;
+        background: #f1f5ff;
+        color: #2f4169;
+        font-weight: 600;
+        text-align: center;
+        transition: background 0.2s ease, color 0.2s ease;
+
+        &.is-complete {
+          background: #d6e3ff;
+          color: #1d2f5c;
+        }
+      }
+    }
+
+    .password-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .password-form label {
+      font-weight: 600;
+      color: #21325a;
+    }
+
+    .password-form input {
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid #c5d3f2;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .password-form button {
+      padding: 0.7rem 1.2rem;
+      border-radius: 999px;
+      border: none;
+      background: #2b4a9e;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      align-self: flex-end;
+    }
+
+    .password-hint {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #5a6a8e;
+    }
+
+    .feedback {
+      min-height: 1.4rem;
+      margin: 0;
+      color: #2b4a9e;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .page-footer {
+      margin-top: 1.5rem;
     }
   }
 

@@ -220,9 +220,14 @@
     return null;
   };
 
+  const createVisitedSnapshot = () => Object.keys(visitedState).reduce((snapshot, key) => {
+    snapshot[key] = Boolean(visitedState[key]);
+    return snapshot;
+  }, {});
+
   const sendHeadingState = (heading, direction) => {
     if (!code) return;
-    const payload = { room: code, code, heading };
+    const payload = { room: code, code, heading, visited: createVisitedSnapshot() };
     if (direction) {
       payload.direction = direction;
     }

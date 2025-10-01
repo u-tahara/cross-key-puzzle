@@ -11,10 +11,6 @@
   const fallbackPassword = 'SHADOW-ACCESS';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
 
-  if (passwordDisplay) {
-    passwordDisplay.textContent = password;
-  }
-
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
   }
@@ -27,18 +23,76 @@
     return number;
   };
 
-  const DARKNESS_THRESHOLD = 0.03;
+  const splitPasswordIntoSegments = (value, desiredSegments = 3) => {
+    const safeValue = (value || '').trim();
+    if (!safeValue) return [];
 
-  const updatePasswordVisibility = (level) => {
-    const isDarkEnough = level <= DARKNESS_THRESHOLD;
+    const characters = Array.from(safeValue);
+    const segments = [];
+    let start = 0;
+
+    for (let i = 0; i < desiredSegments; i += 1) {
+      const remaining = characters.length - start;
+      const segmentsLeft = desiredSegments - i;
+
+      if (remaining <= 0) {
+        break;
+      }
+
+      const size = Math.ceil(remaining / segmentsLeft);
+      segments.push(characters.slice(start, start + size).join(''));
+      start += size;
+    }
+
+    return segments;
+  };
+
+  const passwordSegments = splitPasswordIntoSegments(password);
+  let currentSegmentIndex = -1;
+
+  const determineSegmentIndex = (rawLevel) => {
+    if (!passwordSegments.length) return -1;
+    if (!Number.isFinite(rawLevel)) return -1;
+
+    const normalized = clamp(rawLevel);
+    const inverted = 1 - normalized;
+    const segmentSize = 1 / passwordSegments.length;
+    const index = Math.floor(inverted / segmentSize);
+
+    if (index < 0) return 0;
+    if (index >= passwordSegments.length) {
+      return passwordSegments.length - 1;
+    }
+
+    return index;
+  };
+
+  const updatePasswordSegment = (level) => {
+    const nextIndex = determineSegmentIndex(level);
+
+    if (nextIndex === currentSegmentIndex) {
+      return;
+    }
+
+    currentSegmentIndex = nextIndex;
+
+    const hasSegment = nextIndex >= 0 && nextIndex < passwordSegments.length;
+    const segment = hasSegment ? passwordSegments[nextIndex] : '';
+
     if (passwordDisplay) {
-      passwordDisplay.toggleAttribute('data-hidden', !isDarkEnough);
+      passwordDisplay.textContent = segment;
+      passwordDisplay.toggleAttribute('data-hidden', !hasSegment);
     }
 
     if (passwordLead) {
-      passwordLead.toggleAttribute('data-hidden', !isDarkEnough);
+      if (hasSegment) {
+        passwordLead.textContent = `PASSWORD (パート ${nextIndex + 1}/${passwordSegments.length})`;
+        passwordLead.toggleAttribute('data-hidden', false);
+      } else {
+        passwordLead.textContent = 'PASSWORD';
+        passwordLead.toggleAttribute('data-hidden', true);
+      }
     }
-
   };
 
   const applyLightLevel = (rawLevel) => {
@@ -46,10 +100,24 @@
     const shade = Math.round(level * 255);
     body.style.setProperty('--light-level', String(level));
     body.style.backgroundColor = `rgb(${shade}, ${shade}, ${shade})`;
-    updatePasswordVisibility(level);
+    updatePasswordSegment(level);
   };
 
-  applyLightLevel(1);
+  const resetPasswordDisplay = () => {
+    currentSegmentIndex = -1;
+
+    if (passwordDisplay) {
+      passwordDisplay.textContent = '';
+      passwordDisplay.toggleAttribute('data-hidden', true);
+    }
+
+    if (passwordLead) {
+      passwordLead.textContent = 'PASSWORD';
+      passwordLead.toggleAttribute('data-hidden', true);
+    }
+  };
+
+  resetPasswordDisplay();
 
   const resolveNavigationEndpoint = () => {
     const helper = window.NavigationWs?.detectNavigationWsEndpoint;

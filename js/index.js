@@ -56,14 +56,24 @@ if (mobileButton) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  if (autoRedirectMessage) {
+    autoRedirectMessage.hidden = false;
+    autoRedirectMessage.textContent = '端末認識中';
+  }
+
   const destination = determineDestination();
   if (destination) {
     if (autoRedirectMessage) {
-      autoRedirectMessage.hidden = false;
-      autoRedirectMessage.textContent = 'PC or スマホ 端末で入室しました';
+      const message = destination === 'pc.html' ? 'PC端末で入室しました' : 'スマホ端末で入室しました';
+      autoRedirectMessage.textContent = message;
     }
     setTimeout(() => {
       redirectTo(destination);
     }, 2000);
+    return;
+  }
+
+  if (autoRedirectMessage) {
+    autoRedirectMessage.hidden = true;
   }
 });

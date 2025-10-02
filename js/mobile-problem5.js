@@ -342,9 +342,13 @@
     });
   }
 
-  navigationSocket.on('status', ({ room, code: payloadCode, audio } = {}) => {
+  navigationSocket.on('status', ({ room, code: payloadCode, step, audio } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) return;
+    if (step === 'problemSelection') {
+      goBackToProblem();
+      return;
+    }
     if (audio && typeof audio.level === 'number') {
       setLevel(audio.level);
     }

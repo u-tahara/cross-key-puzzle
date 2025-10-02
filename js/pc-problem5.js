@@ -59,6 +59,7 @@
   const thresholdIndicator = document.querySelector('[data-threshold-indicator]');
   const statusDisplay = document.querySelector('[data-status]');
   const passwordDisplay = document.querySelector('[data-password-display]');
+  const backButton = document.querySelector('.back-button');
 
   const fallbackPassword = 'ECHO-VOICE';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
@@ -129,6 +130,65 @@
   navigationSocket.on('connect', joinRoom);
   navigationSocket.on('reconnect', joinRoom);
 
+  const notifyBackNavigation = () => {
+    if (!code) return;
+    navigationSocket.emit('navigateBack', { room: code, role: 'pc' });
+  };
+
+  const goBackToProblem = () => {
+    const baseUrl = 'pc-problem.html';
+    const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+    window.location.replace(url);
+  };
+
+  const setupBackNavigation = () => {
+    if (!window.history || !window.history.pushState) {
+      return;
+    }
+
+    const stateKey = { page: 'pc-problem5' };
+
+    try {
+      const currentState = window.history.state || {};
+      window.history.replaceState({ ...currentState, ...stateKey }, document.title);
+    } catch (error) {
+      return;
+    }
+
+    const handlePopState = () => {
+      window.removeEventListener('popstate', handlePopState);
+      notifyBackNavigation();
+      goBackToProblem();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    try {
+      const duplicatedState = { ...(window.history.state || {}), ...stateKey, duplicated: true };
+      window.history.pushState(duplicatedState, document.title);
+    } catch (error) {
+      window.removeEventListener('popstate', handlePopState);
+    }
+  };
+
+  if (backButton) {
+    backButton.addEventListener('click', (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      notifyBackNavigation();
+      goBackToProblem();
+    });
+  }
+
+  navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
+    const roomCode = room || payloadCode;
+    if (!roomCode || (code && roomCode !== code)) return;
+    goBackToProblem();
+  });
+
+  setupBackNavigation();
+
   const applyAudioState = (audio) => {
     if (!audio) return;
     if (typeof audio.level === 'number') {
@@ -142,9 +202,13 @@
     }
   };
 
-  navigationSocket.on('status', ({ room, code: payloadCode, audio } = {}) => {
+  navigationSocket.on('status', ({ room, code: payloadCode, step, audio } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) return;
+    if (step === 'problemSelection') {
+      goBackToProblem();
+      return;
+    }
     applyAudioState(audio);
   });
 

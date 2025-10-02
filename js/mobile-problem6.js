@@ -331,9 +331,13 @@
     });
   }
 
-  navigationSocket.on('status', ({ room, code: payloadCode, shake } = {}) => {
+  navigationSocket.on('status', ({ room, code: payloadCode, step, shake } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) return;
+    if (step === 'problemSelection') {
+      goBackToProblem();
+      return;
+    }
     if (shake && typeof shake.count === 'number') {
       setCountValue(shake.count);
     }

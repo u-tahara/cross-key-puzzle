@@ -1,5 +1,29 @@
 (() => {
   const codeDisplay = document.getElementById('pcCodeValue');
+  const CODE_STORAGE_KEY = 'cross-key-puzzle:code';
+
+  const readStoredCode = () => {
+    try {
+      const stored = window.sessionStorage?.getItem(CODE_STORAGE_KEY);
+      return (stored || '').trim();
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const storeCode = (value) => {
+    if (!value) return;
+    try {
+      window.sessionStorage?.setItem(CODE_STORAGE_KEY, value);
+    } catch (error) {
+      // セッションストレージが利用できない場合は無視
+    }
+  };
+
+  const updateCodeDisplay = (value) => {
+    if (!codeDisplay) return;
+    codeDisplay.textContent = `コード: ${value || ''}`;
+  };
 
   // wss 相当のSocket.IO接続
   const socket = io('https://ws.u-tahara.jp', {
@@ -7,7 +31,11 @@
     withCredentials: true
   });
 
-  let currentCode = null;
+  let currentCode = readStoredCode() || null;
+
+  if (currentCode) {
+    updateCodeDisplay(currentCode);
+  }
 
   socket.on('connect', () => {
     // ルーム作成リクエスト（サーバー側でコード生成＆PCをその部屋にjoin）
@@ -17,13 +45,19 @@
   // 生成されたコードを受け取って表示
   socket.on('code', ({ code } = {}) => {
     currentCode = code || currentCode;
-    if (codeDisplay) codeDisplay.textContent = `コード: ${currentCode || ''}`;
+    if (currentCode) {
+      storeCode(currentCode);
+    }
+    updateCodeDisplay(currentCode);
   });
 
   // PCが待機状態になった通知（遷移はしない）
   socket.on('status', ({ role, code } = {}) => {
     if (role === 'pc') {
       currentCode = code || currentCode;
+      if (currentCode) {
+        storeCode(currentCode);
+      }
       // ここでは遷移しない。スマホ参加＝paired を待つ。
     }
   });

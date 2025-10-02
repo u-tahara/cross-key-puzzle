@@ -31,8 +31,47 @@
   });
   const DEFAULT_REQUIRED = Number.isFinite(shakeUtils.DEFAULT_REQUIRED) ? shakeUtils.DEFAULT_REQUIRED : 8;
 
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code') || '';
+  const CODE_STORAGE_KEY = 'cross-key-puzzle:code';
+
+  const readCodeFromQuery = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return (params.get('code') || '').trim();
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const readStoredCode = () => {
+    try {
+      const stored = window.sessionStorage?.getItem(CODE_STORAGE_KEY);
+      return (stored || '').trim();
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const storeCode = (value) => {
+    if (!value) return;
+    try {
+      window.sessionStorage?.setItem(CODE_STORAGE_KEY, value);
+    } catch (error) {
+      // セッションストレージが利用できない場合は無視
+    }
+  };
+
+  const code = (() => {
+    const codeFromQuery = readCodeFromQuery();
+    if (codeFromQuery) {
+      storeCode(codeFromQuery);
+      return codeFromQuery;
+    }
+    const stored = readStoredCode();
+    if (stored) {
+      return stored;
+    }
+    return '';
+  })();
 
   const main = document.querySelector('main[data-password]');
   const codeDisplay = document.querySelector('[data-code-display]');

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - 問題5: 音の共鳴</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/problem5-audio-state.js" defer></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/mobile-problem5.js" defer></script>
+  </head>
+  <body class="page page-mobile-problem5">
+    <main data-password="ECHO-VOICE">
+      <h1>問題5: 音の共鳴</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="instruction">
+        「マイクを開始」ボタンを押して周囲の音を取り込み、
+        声や手拍子で一定以上の音量を検出させましょう。PC側にヒントが現れます。
+      </p>
+      <button type="button" class="mic-button" data-mic-button>マイクを開始</button>
+      <p class="status" data-status>マイクは停止中です。</p>
+      <div class="level-indicator" aria-live="polite">
+        <div class="level-bar" data-level-bar></div>
+      </div>
+      <p class="level-value" data-level-value>音量: 0%</p>
+      <form class="password-form" data-password-form>
+        <label for="problem5PasswordInput">パスワードを入力</label>
+        <input
+          id="problem5PasswordInput"
+          type="text"
+          autocomplete="off"
+          inputmode="text"
+          data-password-input
+          required
+        />
+        <p class="password-hint">PC画面に現れたキーワードを入力してください。</p>
+        <button type="submit">送信</button>
+      </form>
+      <p class="feedback" data-feedback aria-live="polite"></p>
+      <div class="page-footer">
+        <button type="button" class="back-button" data-back-button>問題選択に戻る</button>
+      </div>
+    </main>
+  </body>
+</html>

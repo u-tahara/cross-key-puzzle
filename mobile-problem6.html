@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>スマホ - 問題6: シェイクカウント</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/problem6-shake-state.js" defer></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/mobile-problem6.js" defer></script>
+  </head>
+  <body class="page page-mobile-problem6">
+    <main data-password="RHYTHM-RISE">
+      <h1>問題6: シェイクカウント</h1>
+      <p class="code-display" data-code-display></p>
+      <p class="instruction">
+        「計測を開始」ボタンを押して端末のモーションセンサーを有効化し、
+        スマホを一定回数力強く振ってみましょう。PC側にカウントが共有されます。
+      </p>
+      <button type="button" class="shake-button" data-permission-button>計測を開始</button>
+      <p class="status" data-status>計測は停止中です。</p>
+      <p class="shake-count" data-count>振った回数: 0 回</p>
+      <form class="password-form" data-password-form>
+        <label for="problem6PasswordInput">パスワードを入力</label>
+        <input
+          id="problem6PasswordInput"
+          type="text"
+          autocomplete="off"
+          inputmode="text"
+          data-password-input
+          required
+        />
+        <p class="password-hint">PCで表示された合言葉を入力しましょう。</p>
+        <button type="submit">送信</button>
+      </form>
+      <p class="feedback" data-feedback aria-live="polite"></p>
+      <div class="page-footer">
+        <button type="button" class="back-button" data-back-button>問題選択に戻る</button>
+      </div>
+    </main>
+  </body>
+</html>

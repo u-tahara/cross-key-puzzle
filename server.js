@@ -79,6 +79,88 @@ const applyMazeMove = (mazeState, direction, config) => {
   return { moved: true, goalReached: (newX === config.goal.x && newY === config.goal.y) };
 };
 
+// ====== Problem5 (Audio) ======
+const AUDIO_THRESHOLD = 0.35;
+const clampAudioLevel = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  if (number >= 1) return 1;
+  return number;
+};
+const createInitialAudioState = () => ({
+  level: 0,
+  peak: 0,
+  thresholdReached: false,
+  threshold: AUDIO_THRESHOLD,
+});
+const updateAudioState = (prev = createInitialAudioState(), level, { peak, threshold = AUDIO_THRESHOLD } = {}) => {
+  const normalizedLevel = clampAudioLevel(level);
+  const fallbackPeak = Math.max(prev.peak || 0, normalizedLevel);
+  const normalizedPeak = clampAudioLevel(Number.isFinite(peak) ? peak : fallbackPeak);
+  const thresholdReached = Boolean(prev.thresholdReached || normalizedPeak >= threshold);
+  return {
+    level: normalizedLevel,
+    peak: normalizedPeak,
+    thresholdReached,
+    threshold,
+  };
+};
+
+// ====== Problem6 (Shake) ======
+const SHAKE_THRESHOLD = 18;
+const SHAKE_MIN_INTERVAL = 280;
+const SHAKE_REQUIRED = 8;
+const createInitialShakeState = () => ({
+  count: 0,
+  completed: false,
+  lastShakeAt: 0,
+  required: SHAKE_REQUIRED,
+});
+const updateShakeState = (
+  prev = createInitialShakeState(),
+  magnitude,
+  {
+    now = Date.now(),
+    threshold = SHAKE_THRESHOLD,
+    minInterval = SHAKE_MIN_INTERVAL,
+    required = SHAKE_REQUIRED,
+  } = {},
+) => {
+  const base = {
+    count: Number(prev.count) || 0,
+    completed: Boolean(prev.completed),
+    lastShakeAt: Number(prev.lastShakeAt) || 0,
+    required: Number(prev.required) || required,
+  };
+
+  let { count, completed, lastShakeAt } = base;
+  let incremented = false;
+
+  if (!completed && Number.isFinite(magnitude) && magnitude >= threshold) {
+    const elapsed = now - lastShakeAt;
+    const allowInitial = count <= 0 && lastShakeAt <= 0;
+    if (allowInitial || elapsed >= minInterval) {
+      count += 1;
+      lastShakeAt = now;
+      incremented = true;
+    }
+  }
+
+  if (count >= required) {
+    completed = true;
+  }
+
+  return {
+    count,
+    completed,
+    lastShakeAt,
+    required,
+    threshold,
+    minInterval,
+    incremented,
+  };
+};
+
 // ====== 基本設定 ======
 const PORT = Number(process.env.PORT || 3001);
 const parseOrigins = () => (process.env.ALLOW_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -219,6 +301,8 @@ io.on('connection', (socket) => {
     const state = { step:'problemSelected', problem, destinations, maze, mazeConfigKey: mazeKey };
     if (problem === '3') state.lightLevel = 1;
     if (problem === '4') state.orientation = { heading:null, direction:null, visited:{ north:false, east:false, south:false, west:false } };
+    if (problem === '5') state.audio = createInitialAudioState();
+    if (problem === '6') state.shake = createInitialShakeState();
 
     roomStates.set(code, state);
 
@@ -288,6 +372,74 @@ io.on('connection', (socket) => {
     const response = { room:code, code, level: normalized };
     if (Number.isFinite(payload.t)) response.t = Number(payload.t);
     io.to(code).emit('lightLevel', response);
+  });
+
+  // 音量（Problem5）
+  socket.on('audioLevel', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const levelValue = Number(payload.level);
+    const peakValue = Number(payload.peak);
+    const hasLevel = Number.isFinite(levelValue);
+    const hasPeak = Number.isFinite(peakValue);
+    if (!hasLevel && !hasPeak) return;
+
+    const state = roomStates.get(code) || {};
+    const current = state.audio || createInitialAudioState();
+    const next = updateAudioState(
+      current,
+      hasLevel ? levelValue : current.level,
+      { peak: hasPeak ? peakValue : undefined },
+    );
+
+    state.audio = next; roomStates.set(code, state);
+
+    const response = {
+      room: code,
+      code,
+      level: next.level,
+      peak: next.peak,
+      threshold: next.threshold,
+      thresholdReached: next.thresholdReached,
+    };
+    if (Number.isFinite(payload.t)) response.t = Number(payload.t);
+    if (socket.data?.role) response.from = socket.data.role;
+    io.to(code).emit('audioLevel', response);
+  });
+
+  // シェイク（Problem6）
+  socket.on('shake', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+    const magnitude = Number(payload.magnitude);
+    if (!Number.isFinite(magnitude)) return;
+
+    const timestamp = Number(payload.t);
+    const now = Number.isFinite(timestamp) ? timestamp : Date.now();
+
+    const state = roomStates.get(code) || {};
+    const current = state.shake || createInitialShakeState();
+    const next = updateShakeState(current, magnitude, { now });
+    state.shake = {
+      count: next.count,
+      completed: next.completed,
+      lastShakeAt: next.lastShakeAt,
+      required: next.required,
+    };
+    roomStates.set(code, state);
+
+    const response = {
+      room: code,
+      code,
+      magnitude,
+      count: next.count,
+      completed: next.completed,
+      required: next.required,
+    };
+    if (Number.isFinite(payload.t)) response.t = Number(payload.t);
+    if (socket.data?.role) response.from = socket.data.role;
+    io.to(code).emit('shake', response);
   });
 
   socket.on('disconnect', () => {

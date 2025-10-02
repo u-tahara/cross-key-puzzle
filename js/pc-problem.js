@@ -14,7 +14,8 @@
     '2': { pc: 'pc-gyro.html', mobile: 'mobile-gyro.html' },
     '3': { pc: 'pc-problem3.html', mobile: 'mobile-problem3.html' },
     '4': { pc: 'pc-problem4.html', mobile: 'mobile-problem4.html' },
-    '5': { pc: 'pc-next.html', mobile: 'mobile-next.html' }
+    '5': { pc: 'pc-problem5.html', mobile: 'mobile-problem5.html' },
+    '6': { pc: 'pc-problem6.html', mobile: 'mobile-problem6.html' },
   };
 
   const socket = io('https://ws.u-tahara.jp', {

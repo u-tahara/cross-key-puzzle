@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PC - 問題6: シェイクゲージ</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/problem6-shake-state.js" defer></script>
+    <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/pc-problem6.js" defer></script>
+  </head>
+  <body class="page page-pc-problem6">
+    <main data-password="RHYTHM-RISE">
+      <h1>問題6: シェイクゲージ</h1>
+      <p class="sr-only" data-code-display></p>
+      <p class="instructions" aria-live="polite">
+        スマホを振って振動エネルギーを溜めましょう。指定回数を超えると合言葉が表示されます。
+      </p>
+      <section class="shake-progress" aria-live="polite">
+        <p class="shake-counter" data-count-display>振った回数: 0 / <span data-required>--</span></p>
+        <div class="shake-bar">
+          <div class="shake-fill" data-progress-bar></div>
+        </div>
+      </section>
+      <p class="status" data-status>スマホ側で計測を開始してください。</p>
+      <section class="password-summary" aria-live="polite">
+        <h2>合言葉</h2>
+        <p class="password-display" data-password-display data-hidden>????</p>
+      </section>
+      <div class="page-footer">
+        <a class="back-button" href="pc-problem.html">問題選択に戻る</a>
+      </div>
+    </main>
+  </body>
+</html>

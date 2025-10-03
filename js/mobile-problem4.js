@@ -26,14 +26,23 @@
   const fallbackPassword = 'NAVIGATOR';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
   const successUrl = (main?.dataset?.successUrl || '').trim();
-  let hasNavigatedToSuccess = false;
+  const successNavigator = window.PasswordSuccess?.createSuccessNavigator
+    ? window.PasswordSuccess.createSuccessNavigator({
+        successUrl,
+        code,
+        location: window.location,
+      })
+    : null;
 
-  const navigateToSuccess = () => {
-    if (!successUrl || hasNavigatedToSuccess) return;
-    hasNavigatedToSuccess = true;
-    const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
-    window.location.replace(url);
-  };
+  const navigateToSuccess = successNavigator
+    ? () => {
+        successNavigator.navigate();
+      }
+    : () => {
+        if (!successUrl) return;
+        const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
+        window.location.replace(url);
+      };
 
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
@@ -157,6 +166,30 @@
 
   navigationSocket.on('connect', joinRoom);
   navigationSocket.on('reconnect', joinRoom);
+
+  const isProblemSolvedStep = (value) =>
+    typeof value === 'string' && value.trim().toLowerCase() === 'problemsolved';
+
+  let hasNotifiedProblemSolved = false;
+
+  const notifyProblemSolved = () => {
+    if (hasNotifiedProblemSolved || !code) {
+      return;
+    }
+    hasNotifiedProblemSolved = true;
+    navigationSocket.emit('problemSolved', { room: code, role: 'mobile' });
+  };
+
+  const handleProblemSolved = ({ room, code: payloadCode } = {}) => {
+    const roomCode = room || payloadCode;
+    if (!roomCode || (code && roomCode !== code)) {
+      return;
+    }
+    hasNotifiedProblemSolved = true;
+    navigateToSuccess();
+  };
+
+  navigationSocket.on('problemSolved', handleProblemSolved);
 
   const notifyBackNavigation = () => {
     if (!code) return;
@@ -405,6 +438,7 @@
 
       if (value.toUpperCase() === password.toUpperCase()) {
         setFeedbackMessage('正解です！PC画面に表示された断片を順番に並べられました。');
+        notifyProblemSolved();
         navigateToSuccess();
       } else {
         setFeedbackMessage('パスワードが一致しません。断片の順番をもう一度確認してください。');
@@ -412,9 +446,14 @@
     });
   }
 
-  navigationSocket.on('status', ({ room, code: payloadCode, orientation } = {}) => {
+  navigationSocket.on('status', ({ room, code: payloadCode, orientation, step } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) {
+      return;
+    }
+
+    if (isProblemSolvedStep(step)) {
+      handleProblemSolved({ room: roomCode });
       return;
     }
 

@@ -323,6 +323,34 @@ io.on('connection', (socket) => {
     io.to(code).emit('status', { room:code, code, step:'problemSelection', from: role });
   });
 
+  // 正解
+  socket.on('problemSolved', (payload = {}) => {
+    const code = sanitizeCode(payload.room || payload.code || socket.data.room);
+    if (!code || code.length !== CODE_LEN) return;
+
+    const state = roomStates.get(code) || {};
+    state.step = 'problemSolved';
+    state.solvedAt = Date.now();
+    const emitterRole = socket.data?.role || (typeof payload.role === 'string' ? payload.role : undefined);
+    if (emitterRole) {
+      state.lastSolvedBy = emitterRole;
+    }
+    roomStates.set(code, state);
+
+    const problemSolvedPayload = { room: code, code };
+    if (emitterRole) {
+      problemSolvedPayload.from = emitterRole;
+    }
+
+    io.to(code).emit('problemSolved', problemSolvedPayload);
+
+    const statusPayload = { room: code, code, ...state, step: 'problemSolved' };
+    if (emitterRole) {
+      statusPayload.from = emitterRole;
+    }
+    io.to(code).emit('status', statusPayload);
+  });
+
   // 方位（Problem4）
   socket.on('heading', (payload = {}) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);

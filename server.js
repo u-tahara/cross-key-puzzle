@@ -211,6 +211,13 @@ const emitMazeState = (target, room, mazeState, {direction, moved, goalReached, 
   target.emit('mazeState', payload);
 };
 
+const SOLVED_DESTINATIONS = Object.freeze({
+  pc: 'pc-clear.html',
+  mobile: 'mobile-clear.html',
+});
+
+const cloneSolvedDestinations = () => ({ ...SOLVED_DESTINATIONS });
+
 const markProblemSolved = (code, { emitterRole, solvedAt } = {}) => {
   const room = sanitizeCode(code);
   if (!room || room.length !== CODE_LEN) return;
@@ -224,14 +231,17 @@ const markProblemSolved = (code, { emitterRole, solvedAt } = {}) => {
   if (emitterRole) {
     state.lastSolvedBy = emitterRole;
   }
+  state.destinations = cloneSolvedDestinations();
   roomStates.set(room, state);
 
-  const problemSolvedPayload = { room, code: room };
+  const destinations = cloneSolvedDestinations();
+
+  const problemSolvedPayload = { room, code: room, destinations };
   if (emitterRole) {
     problemSolvedPayload.from = emitterRole;
   }
 
-  const statusPayload = { room, code: room, ...state, step: 'problemSolved' };
+  const statusPayload = { room, code: room, ...state, step: 'problemSolved', destinations };
   if (emitterRole) {
     statusPayload.from = emitterRole;
   }

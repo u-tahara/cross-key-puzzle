@@ -28,17 +28,31 @@
     withCredentials: true,
   });
 
+  let hasNotifiedProblemSolved = false;
+
   const joinRoom = () => {
     if (!code) return;
     navigationSocket.emit('join', { room: code, role: 'mobile' });
   };
 
-  if (navigationSocket.connected) {
+  const notifyProblemSolved = () => {
+    if (!code) return;
+    if (hasNotifiedProblemSolved) return;
+    hasNotifiedProblemSolved = true;
+    navigationSocket.emit('problemSolved', { room: code, role: 'mobile' });
+  };
+
+  const handleConnection = () => {
     joinRoom();
+    notifyProblemSolved();
+  };
+
+  if (navigationSocket.connected) {
+    handleConnection();
   }
 
-  navigationSocket.on('connect', joinRoom);
-  navigationSocket.on('reconnect', joinRoom);
+  navigationSocket.on('connect', handleConnection);
+  navigationSocket.on('reconnect', handleConnection);
 
   const notifyBackNavigation = () => {
     if (!code) return;

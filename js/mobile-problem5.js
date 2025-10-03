@@ -71,6 +71,15 @@
 
   const fallbackPassword = 'ECHO-VOICE';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
+  const successUrl = (main?.dataset?.successUrl || '').trim();
+  let hasNavigatedToSuccess = false;
+
+  const navigateToSuccess = () => {
+    if (!successUrl || hasNavigatedToSuccess) return;
+    hasNavigatedToSuccess = true;
+    const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
+    window.location.replace(url);
+  };
 
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
@@ -336,6 +345,7 @@
 
       if (value.toUpperCase() === password.toUpperCase()) {
         setFeedbackMessage('正解です！PC画面の指示を確認しましょう。');
+        navigateToSuccess();
       } else {
         setFeedbackMessage('パスワードが一致しません。もう一度PC側を確認してください。');
       }

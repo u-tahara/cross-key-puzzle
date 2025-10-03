@@ -218,6 +218,18 @@ const SOLVED_DESTINATIONS = Object.freeze({
 
 const cloneSolvedDestinations = () => ({ ...SOLVED_DESTINATIONS });
 
+const resolveSolvedDestinations = (candidates) => {
+  const normalized = normalizeDestinations(candidates);
+  if (!normalized) {
+    return cloneSolvedDestinations();
+  }
+
+  const destinations = { ...normalized };
+  if (!destinations.pc) destinations.pc = SOLVED_DESTINATIONS.pc;
+  if (!destinations.mobile) destinations.mobile = SOLVED_DESTINATIONS.mobile;
+  return destinations;
+};
+
 const markProblemSolved = (code, { emitterRole, solvedAt } = {}) => {
   const room = sanitizeCode(code);
   if (!room || room.length !== CODE_LEN) return;
@@ -231,10 +243,10 @@ const markProblemSolved = (code, { emitterRole, solvedAt } = {}) => {
   if (emitterRole) {
     state.lastSolvedBy = emitterRole;
   }
-  state.destinations = cloneSolvedDestinations();
+  state.destinations = resolveSolvedDestinations(state.destinations);
   roomStates.set(room, state);
 
-  const destinations = cloneSolvedDestinations();
+  const destinations = resolveSolvedDestinations(state.destinations);
 
   const problemSolvedPayload = { room, code: room, destinations };
   if (emitterRole) {
@@ -420,6 +432,12 @@ io.on('connection', (socket) => {
     if (Number.isFinite(payload.t)) response.t = Number(payload.t);
     if (socket.data?.role) response.from = socket.data.role;
     io.to(code).emit('heading', response);
+
+    const visitedAll = Object.values(orientation.visited || {}).every(Boolean);
+    if (visitedAll) {
+      const solvedAt = Number.isFinite(payload.t) ? Number(payload.t) : Date.now();
+      markProblemSolved(code, { emitterRole: socket.data?.role, solvedAt });
+    }
   });
 
   // 明るさ（Problem3）
@@ -468,6 +486,11 @@ io.on('connection', (socket) => {
     if (Number.isFinite(payload.t)) response.t = Number(payload.t);
     if (socket.data?.role) response.from = socket.data.role;
     io.to(code).emit('audioLevel', response);
+
+    if (next.thresholdReached) {
+      const solvedAt = Number.isFinite(payload.t) ? Number(payload.t) : Date.now();
+      markProblemSolved(code, { emitterRole: socket.data?.role, solvedAt });
+    }
   });
 
   // シェイク（Problem6）
@@ -502,6 +525,10 @@ io.on('connection', (socket) => {
     if (Number.isFinite(payload.t)) response.t = Number(payload.t);
     if (socket.data?.role) response.from = socket.data.role;
     io.to(code).emit('shake', response);
+
+    if (next.completed) {
+      markProblemSolved(code, { emitterRole: socket.data?.role, solvedAt: now });
+    }
   });
 
   socket.on('disconnect', () => {

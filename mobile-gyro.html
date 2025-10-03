@@ -6,10 +6,11 @@
     <link rel="stylesheet" href="css/styles.css" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="js/navigation-endpoint.js" defer></script>
+    <script src="js/password-success.js" defer></script>
     <script src="js/mobile-gyro.js" defer></script>
   </head>
   <body class="page page-mobile-controller page-mobile-gyro">
-    <main>
+    <main data-success-url="mobile-clear.html">
       <h1>スマホを傾けて迷路を進もう</h1>
       <p class="code-display" data-code-display></p>
       <p class="controller-status" data-status aria-live="polite"></p>

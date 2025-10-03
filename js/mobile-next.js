@@ -116,9 +116,14 @@ const describeDirection = (direction) => {
   return '';
 };
 
-navigationSocket.on('status', ({ room, code: payloadCode, maze } = {}) => {
+navigationSocket.on('status', ({ room, code: payloadCode, maze, step } = {}) => {
   const roomCode = room || payloadCode;
   if (code && roomCode && roomCode !== code) {
+    return;
+  }
+
+  if (step === 'problemSolved') {
+    handleProblemSolved({ room: roomCode });
     return;
   }
 

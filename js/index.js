@@ -1,6 +1,6 @@
-const pcButton = document.getElementById('pcBtn');
-const mobileButton = document.getElementById('spBtn');
 const autoRedirectMessage = document.getElementById('autoRedirectMessage');
+const loadingSpinner = document.querySelector('.loading-spinner');
+const loadingScreen = document.querySelector('.loading-screen');
 
 const redirectTo = (path) => {
   if (!path) return;
@@ -43,28 +43,21 @@ const determineDestination = () => {
   return null;
 };
 
-if (pcButton) {
-  pcButton.addEventListener('click', () => {
-    redirectTo('pc.html');
-  });
-}
-
-if (mobileButton) {
-  mobileButton.addEventListener('click', () => {
-    redirectTo('mobile.html');
-  });
-}
-
 window.addEventListener('DOMContentLoaded', () => {
   if (autoRedirectMessage) {
-    autoRedirectMessage.hidden = false;
-    autoRedirectMessage.textContent = '端末認識中';
+    autoRedirectMessage.textContent = '端末情報を取得しています...';
+  }
+
+  if (loadingScreen) {
+    loadingScreen.setAttribute('aria-busy', 'true');
   }
 
   const destination = determineDestination();
   if (destination) {
     if (autoRedirectMessage) {
-      const message = destination === 'pc.html' ? 'PC端末で入室しました' : 'スマホ端末で入室しました';
+      const message = destination === 'pc.html'
+        ? 'PC端末を確認しました。まもなく移動します。'
+        : 'スマホ端末を確認しました。まもなく移動します。';
       autoRedirectMessage.textContent = message;
     }
     setTimeout(() => {
@@ -74,6 +67,14 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   if (autoRedirectMessage) {
-    autoRedirectMessage.hidden = true;
+    autoRedirectMessage.textContent = '端末を判別できませんでした。PC版またはスマホ版のページを直接開いてください。';
+  }
+
+  if (loadingSpinner) {
+    loadingSpinner.classList.add('is-hidden');
+  }
+
+  if (loadingScreen) {
+    loadingScreen.setAttribute('aria-busy', 'false');
   }
 });

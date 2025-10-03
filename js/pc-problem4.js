@@ -25,6 +25,24 @@
 
   const fallbackPassword = 'NAVIGATOR';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
+  const successUrl = (main?.dataset?.successUrl || '').trim();
+  const successNavigator = window.PasswordSuccess?.createSuccessNavigator
+    ? window.PasswordSuccess.createSuccessNavigator({
+        successUrl,
+        code,
+        location: window.location,
+      })
+    : null;
+
+  const navigateToSuccess = successNavigator
+    ? () => {
+        successNavigator.navigate();
+      }
+    : () => {
+        if (!successUrl) return;
+        const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
+        window.location.replace(url);
+      };
 
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
@@ -152,6 +170,15 @@
   navigationSocket.on('connect', joinRoom);
   navigationSocket.on('reconnect', joinRoom);
 
+  const isProblemSolvedStep = (value) =>
+    typeof value === 'string' && value.trim().toLowerCase() === 'problemsolved';
+
+  navigationSocket.on('problemSolved', ({ room, code: payloadCode } = {}) => {
+    const roomCode = room || payloadCode;
+    if (!roomCode || (code && roomCode !== code)) return;
+    navigateToSuccess();
+  });
+
   const notifyBackNavigation = () => {
     if (!code) return;
     navigationSocket.emit('navigateBack', { room: code, role: 'pc' });
@@ -236,9 +263,14 @@
     }
   };
 
-  navigationSocket.on('status', ({ room, code: payloadCode, orientation } = {}) => {
+  navigationSocket.on('status', ({ room, code: payloadCode, orientation, step } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) {
+      return;
+    }
+
+    if (isProblemSolvedStep(step)) {
+      navigateToSuccess();
       return;
     }
 

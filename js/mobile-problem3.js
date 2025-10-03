@@ -314,7 +314,7 @@
       }
 
       if (value.toUpperCase() === password.toUpperCase()) {
-        setFeedbackMessage('正解です！PC側で背景が暗くなるとパスワードが現れます。');
+        setFeedbackMessage('');
         notifyProblemSolved();
         navigateToSuccess();
       } else {

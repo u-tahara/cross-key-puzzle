@@ -3,6 +3,59 @@ const codeDisplay = document.querySelector('[data-code-display]');
 const statusDisplay = document.querySelector('[data-status]');
 const startButton = document.querySelector('[data-start-button]');
 const resetButton = document.querySelector('[data-reset-button]');
+const mainElement = document.querySelector('main');
+
+const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const buildDestination = (baseUrl, codeValue) => {
+  const url = normalizeString(baseUrl);
+  if (!url) return '';
+  const trimmedCode = normalizeString(codeValue);
+  if (!trimmedCode) {
+    return url;
+  }
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}code=${encodeURIComponent(trimmedCode)}`;
+};
+
+const fallbackSuccessUrl = 'mobile-clear.html';
+let successUrl = normalizeString(mainElement?.dataset?.successUrl) || fallbackSuccessUrl;
+
+const createSuccessNavigator = () =>
+  (window.PasswordSuccess?.createSuccessNavigator
+    ? window.PasswordSuccess.createSuccessNavigator({
+        successUrl,
+        code,
+        location: window.location,
+      })
+    : null);
+
+let successNavigator = createSuccessNavigator();
+
+const updateSuccessDestination = (nextUrl) => {
+  const normalized = normalizeString(nextUrl);
+  if (!normalized || normalized === successUrl) {
+    return;
+  }
+  successUrl = normalized;
+  successNavigator = createSuccessNavigator();
+};
+
+const navigateToSuccessPage = () => {
+  if (
+    successNavigator &&
+    typeof successNavigator.navigate === 'function' &&
+    successNavigator.navigate()
+  ) {
+    return;
+  }
+
+  const destination = buildDestination(successUrl, code);
+  if (!destination) {
+    return;
+  }
+  window.location.replace(destination);
+};
 
 const resolveNavigationEndpoint = () => {
   const helper = window.NavigationWs?.detectNavigationWsEndpoint;
@@ -17,13 +70,18 @@ const navigationSocket = io(resolveNavigationEndpoint(), {
   withCredentials: true,
 });
 
-const goToClearPage = () => {
-  const baseUrl = 'mobile-clear.html';
-  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
-  window.location.replace(url);
-};
-
 let hasNotifiedProblemSolved = false;
+
+const applyDestinations = (destinations) => {
+  if (!destinations || typeof destinations !== 'object') {
+    return;
+  }
+
+  const candidate = normalizeString(destinations.mobile);
+  if (candidate) {
+    updateSuccessDestination(candidate);
+  }
+};
 
 const joinRoom = () => {
   if (!code) return;
@@ -269,36 +327,40 @@ navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
   goBackToProblem();
 });
 
-navigationSocket.on('status', ({ room, code: payloadCode, maze } = {}) => {
+navigationSocket.on('status', ({ room, code: payloadCode, maze, destinations } = {}) => {
   const roomCode = room || payloadCode;
   if (code && roomCode && roomCode !== code) {
     return;
   }
 
+  applyDestinations(destinations);
   if (maze && maze.player) {
     const { x, y } = maze.player;
     setStatusMessage(`現在位置: (${x}, ${y})`);
   }
 });
 
-navigationSocket.on('mazeState', ({ room, code: payloadCode, moved, direction, goalReached, player: position } = {}) => {
-  const roomCode = room || payloadCode;
-  if (code && roomCode && roomCode !== code) {
-    return;
-  }
+navigationSocket.on(
+  'mazeState',
+  ({ room, code: payloadCode, moved, direction, goalReached, player: position, destinations } = {}) => {
+    const roomCode = room || payloadCode;
+    if (code && roomCode && roomCode !== code) {
+      return;
+    }
 
-  if (!moved && direction) {
-    setStatusMessage('その方向には進めませんでした');
-    orientationControl.needsNeutral = false;
-    return;
-  }
+    applyDestinations(destinations);
+    if (!moved && direction) {
+      setStatusMessage('その方向には進めませんでした');
+      orientationControl.needsNeutral = false;
+      return;
+    }
 
-  if (goalReached) {
-    setStatusMessage('');
-    notifyProblemSolved();
-    goToClearPage();
-    return;
-  }
+    if (goalReached) {
+      setStatusMessage('');
+      notifyProblemSolved();
+      navigateToSuccessPage();
+      return;
+    }
 
   const message = describeDirection(direction);
   if (message) {
@@ -316,14 +378,15 @@ navigationSocket.on('mazeState', ({ room, code: payloadCode, moved, direction, g
   }
 });
 
-const handleProblemSolved = ({ room, code: payloadCode } = {}) => {
+const handleProblemSolved = ({ room, code: payloadCode, destinations } = {}) => {
   const roomCode = room || payloadCode;
   if (!roomCode || (code && roomCode !== code)) {
     return;
   }
 
+  applyDestinations(destinations);
   hasNotifiedProblemSolved = true;
-  goToClearPage();
+  navigateToSuccessPage();
 };
 
 navigationSocket.on('problemSolved', handleProblemSolved);

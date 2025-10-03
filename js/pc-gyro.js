@@ -1,5 +1,66 @@
 const mazeContainer = document.getElementById('maze');
 const code = new URLSearchParams(window.location.search).get('code');
+const mainElement = document.querySelector('main');
+
+const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const buildDestination = (baseUrl, codeValue) => {
+  const url = normalizeString(baseUrl);
+  if (!url) return '';
+  const trimmedCode = normalizeString(codeValue);
+  if (!trimmedCode) {
+    return url;
+  }
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}code=${encodeURIComponent(trimmedCode)}`;
+};
+
+const fallbackSuccessUrl = 'pc-clear.html';
+let successUrl = normalizeString(mainElement?.dataset?.successUrl) || fallbackSuccessUrl;
+
+const createSuccessNavigator = () =>
+  (window.PasswordSuccess?.createSuccessNavigator
+    ? window.PasswordSuccess.createSuccessNavigator({
+        successUrl,
+        code,
+        location: window.location,
+      })
+    : null);
+
+let successNavigator = createSuccessNavigator();
+let hasNavigatedToSuccessPage = false;
+
+const updateSuccessDestination = (nextUrl) => {
+  const normalized = normalizeString(nextUrl);
+  if (!normalized || normalized === successUrl) {
+    return;
+  }
+  successUrl = normalized;
+  successNavigator = createSuccessNavigator();
+};
+
+const navigateToSuccessPage = () => {
+  if (hasNavigatedToSuccessPage) {
+    return;
+  }
+
+  if (
+    successNavigator &&
+    typeof successNavigator.navigate === 'function' &&
+    successNavigator.navigate()
+  ) {
+    hasNavigatedToSuccessPage = true;
+    return;
+  }
+
+  const destination = buildDestination(successUrl, code);
+  if (!destination) {
+    return;
+  }
+
+  hasNavigatedToSuccessPage = true;
+  window.location.replace(destination);
+};
 
 const resolveNavigationEndpoint = () => {
   const helper = window.NavigationWs?.detectNavigationWsEndpoint;
@@ -142,18 +203,17 @@ const player = {
   x: Number(fallbackConfig.start?.x) || 0,
   y: Number(fallbackConfig.start?.y) || 0,
 };
-let hasNavigatedToClearPage = false;
 let hasNotifiedProblemSolved = false;
 
-const navigateToClearPage = () => {
-  if (hasNavigatedToClearPage) {
+const applyDestinations = (destinations) => {
+  if (!destinations || typeof destinations !== 'object') {
     return;
   }
 
-  hasNavigatedToClearPage = true;
-  const baseUrl = 'pc-clear.html';
-  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
-  window.location.replace(url);
+  const candidate = normalizeString(destinations.pc);
+  if (candidate) {
+    updateSuccessDestination(candidate);
+  }
 };
 
 const notifyProblemSolved = () => {
@@ -211,7 +271,7 @@ const applyMazeConfig = (config = fallbackConfig, { resetPlayer = false, usingFa
     player.y = Number.isFinite(startY) ? startY : fallbackConfig.start.y;
   }
 
-  hasNavigatedToClearPage = false;
+  hasNavigatedToSuccessPage = false;
   drawMaze();
 };
 
@@ -272,24 +332,27 @@ const updatePlayer = (position = {}) => {
 
 const handleGoal = (goalReached) => {
   if (goalReached) {
-    if (!hasNavigatedToClearPage) {
+    if (!hasNavigatedToSuccessPage) {
       notifyProblemSolved();
-      navigateToClearPage();
+      navigateToSuccessPage();
     }
     return;
   }
 
-  hasNavigatedToClearPage = false;
+  hasNavigatedToSuccessPage = false;
 };
 
-navigationSocket.on('status', ({ room, code: payloadCode, maze, mazeConfigKey, problem, goal: payloadGoal } = {}) => {
-  const roomCode = room || payloadCode;
-  if (code && roomCode && roomCode !== code) {
-    return;
-  }
+navigationSocket.on(
+  'status',
+  ({ room, code: payloadCode, maze, mazeConfigKey, problem, goal: payloadGoal, destinations } = {}) => {
+    const roomCode = room || payloadCode;
+    if (code && roomCode && roomCode !== code) {
+      return;
+    }
 
-  const incomingKey = mazeConfigKey || problem;
-  const configUpdated = incomingKey ? updateMazeConfigByKey(incomingKey) : false;
+    applyDestinations(destinations);
+    const incomingKey = mazeConfigKey || problem;
+    const configUpdated = incomingKey ? updateMazeConfigByKey(incomingKey) : false;
 
   let goalChanged = false;
   if (!configUpdated && payloadGoal) {
@@ -302,17 +365,21 @@ navigationSocket.on('status', ({ room, code: payloadCode, maze, mazeConfigKey, p
   } else if (goalChanged) {
     drawMaze();
   }
-});
+  },
+);
 
-navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, goalReached, goal: payloadGoal, mazeConfigKey } = {}) => {
-  const roomCode = room || payloadCode;
-  if (code && roomCode && roomCode !== code) {
-    return;
-  }
+navigationSocket.on(
+  'mazeState',
+  ({ room, code: payloadCode, player: position, goalReached, goal: payloadGoal, mazeConfigKey, destinations } = {}) => {
+    const roomCode = room || payloadCode;
+    if (code && roomCode && roomCode !== code) {
+      return;
+    }
 
-  if (mazeConfigKey) {
-    updateMazeConfigByKey(mazeConfigKey);
-  }
+    applyDestinations(destinations);
+    if (mazeConfigKey) {
+      updateMazeConfigByKey(mazeConfigKey);
+    }
 
   if (payloadGoal) {
     updateGoal(payloadGoal, { shouldRedraw: false });
@@ -324,16 +391,18 @@ navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, g
   } else {
     drawMaze();
   }
-});
+  },
+);
 
-navigationSocket.on('problemSolved', ({ room, code: payloadCode } = {}) => {
+navigationSocket.on('problemSolved', ({ room, code: payloadCode, destinations } = {}) => {
   const roomCode = room || payloadCode;
   if (!roomCode || (code && roomCode !== code)) {
     return;
   }
 
+  applyDestinations(destinations);
   hasNotifiedProblemSolved = true;
-  navigateToClearPage();
+  navigateToSuccessPage();
 });
 
 const backButton = document.querySelector('.back-button');

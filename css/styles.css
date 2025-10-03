@@ -278,7 +278,9 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(180deg, #f7f7f7 0%, #f0f4ff 100%);
+    background: linear-gradient(135deg, #ff6ec4, #7873f5, #4ac29a, #fbe29f);
+    background-size: 320% 320%;
+    animation: gradientFlow 24s ease infinite;
 
     main {
       width: min(520px, 90vw);

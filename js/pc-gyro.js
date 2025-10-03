@@ -143,11 +143,26 @@ const player = {
   y: Number(fallbackConfig.start?.y) || 0,
 };
 let hasNavigatedToClearPage = false;
+let hasNotifiedProblemSolved = false;
 
-const goToClearPage = () => {
+const navigateToClearPage = () => {
+  if (hasNavigatedToClearPage) {
+    return;
+  }
+
+  hasNavigatedToClearPage = true;
   const baseUrl = 'pc-clear.html';
   const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
   window.location.replace(url);
+};
+
+const notifyProblemSolved = () => {
+  if (!code || hasNotifiedProblemSolved) {
+    return;
+  }
+
+  hasNotifiedProblemSolved = true;
+  navigationSocket.emit('problemSolved', { room: code, role: 'pc' });
 };
 
 function drawMaze() {
@@ -258,8 +273,8 @@ const updatePlayer = (position = {}) => {
 const handleGoal = (goalReached) => {
   if (goalReached) {
     if (!hasNavigatedToClearPage) {
-      hasNavigatedToClearPage = true;
-      goToClearPage();
+      notifyProblemSolved();
+      navigateToClearPage();
     }
     return;
   }
@@ -309,6 +324,16 @@ navigationSocket.on('mazeState', ({ room, code: payloadCode, player: position, g
   } else {
     drawMaze();
   }
+});
+
+navigationSocket.on('problemSolved', ({ room, code: payloadCode } = {}) => {
+  const roomCode = room || payloadCode;
+  if (!roomCode || (code && roomCode !== code)) {
+    return;
+  }
+
+  hasNotifiedProblemSolved = true;
+  navigateToClearPage();
 });
 
 const backButton = document.querySelector('.back-button');

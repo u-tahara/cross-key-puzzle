@@ -3,7 +3,6 @@
   const code = params.get('code') || '';
   const codeDisplay = document.querySelector('[data-code-display]');
   const backButton = document.querySelector('[data-back-button]');
-  const mobileWaitButton = document.querySelector('[data-mobile-wait-button]');
 
   const buildDestination = (baseUrl) =>
     code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
@@ -14,10 +13,6 @@
 
   if (backButton) {
     backButton.setAttribute('href', buildDestination('pc-problem.html'));
-  }
-
-  if (mobileWaitButton) {
-    mobileWaitButton.setAttribute('href', buildDestination('mobile-problem.html'));
   }
 
   const resolveNavigationEndpoint = () => {
@@ -91,12 +86,6 @@
       event.preventDefault();
       notifyBackNavigation();
       goBackToProblem();
-    });
-  }
-
-  if (mobileWaitButton) {
-    mobileWaitButton.addEventListener('click', () => {
-      notifyBackNavigation();
     });
   }
 

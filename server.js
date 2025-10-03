@@ -211,6 +211,42 @@ const emitMazeState = (target, room, mazeState, {direction, moved, goalReached, 
   target.emit('mazeState', payload);
 };
 
+const markProblemSolved = (code, { emitterRole, solvedAt } = {}) => {
+  const room = sanitizeCode(code);
+  if (!room || room.length !== CODE_LEN) return;
+
+  const state = roomStates.get(room) || {};
+  const timestamp = Number.isFinite(solvedAt) ? Number(solvedAt) : Date.now();
+  const alreadySolved = state.step === 'problemSolved';
+
+  state.step = 'problemSolved';
+  state.solvedAt = timestamp;
+  if (emitterRole) {
+    state.lastSolvedBy = emitterRole;
+  }
+  roomStates.set(room, state);
+
+  const problemSolvedPayload = { room, code: room };
+  if (emitterRole) {
+    problemSolvedPayload.from = emitterRole;
+  }
+
+  const statusPayload = { room, code: room, ...state, step: 'problemSolved' };
+  if (emitterRole) {
+    statusPayload.from = emitterRole;
+  }
+
+  // 既に正解済みでも最新状態を再送して同期を確実にする
+  io.to(room).emit('problemSolved', problemSolvedPayload);
+  io.to(room).emit('status', statusPayload);
+
+  if (!alreadySolved && state.maze) {
+    const mazeKey = resolveMazeConfigKey(state.mazeConfigKey || state.problem);
+    const mazeConfig = getMazeConfig(mazeKey);
+    emitMazeState(io.to(room), room, state.maze, { goalReached: true }, mazeConfig);
+  }
+};
+
 // ソケット処理
 io.on('connection', (socket) => {
   socket.data.room = null;
@@ -280,10 +316,15 @@ io.on('connection', (socket) => {
 
     const moveResult = applyMazeMove(state.maze, direction, mazeConfig);
     const timestamp = Number(payload.t || Date.now());
-    const meta = { direction, moved: moveResult.moved, goalReached: moveResult.goalReached, from: socket.data.role || undefined, t: timestamp };
+    const emitterRole = socket.data?.role || undefined;
+    const meta = { direction, moved: moveResult.moved, goalReached: moveResult.goalReached, from: emitterRole, t: timestamp };
 
     if (!moveResult.moved) { emitMazeState(socket, code, state.maze, meta, mazeConfig); return; }
     emitMazeState(io.to(code), code, state.maze, meta, mazeConfig);
+
+    if (moveResult.goalReached) {
+      markProblemSolved(code, { emitterRole, solvedAt: timestamp });
+    }
   });
 
   // 問題選択
@@ -329,27 +370,9 @@ io.on('connection', (socket) => {
     const code = sanitizeCode(payload.room || payload.code || socket.data.room);
     if (!code || code.length !== CODE_LEN) return;
 
-    const state = roomStates.get(code) || {};
-    state.step = 'problemSolved';
-    state.solvedAt = Date.now();
     const emitterRole = socket.data?.role || (typeof payload.role === 'string' ? payload.role : undefined);
-    if (emitterRole) {
-      state.lastSolvedBy = emitterRole;
-    }
-    roomStates.set(code, state);
-
-    const problemSolvedPayload = { room: code, code };
-    if (emitterRole) {
-      problemSolvedPayload.from = emitterRole;
-    }
-
-    io.to(code).emit('problemSolved', problemSolvedPayload);
-
-    const statusPayload = { room: code, code, ...state, step: 'problemSolved' };
-    if (emitterRole) {
-      statusPayload.from = emitterRole;
-    }
-    io.to(code).emit('status', statusPayload);
+    const solvedAt = Number.isFinite(payload?.t) ? Number(payload.t) : undefined;
+    markProblemSolved(code, { emitterRole, solvedAt });
   });
 
   // 方位（Problem4）

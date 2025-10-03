@@ -98,10 +98,10 @@
 
   const destinationMap = {
     '1': 'mobile-next.html',
-    '2': 'mobile-next.html',
+    '2': 'mobile-gyro.html',
     '3': 'mobile-problem3.html',
-    '4': 'mobile-next.html',
-    '5': 'mobile-next.html',
+    '4': 'mobile-problem4.html',
+    '5': 'mobile-problem5.html',
     '6': 'mobile-problem6.html',
   };
 

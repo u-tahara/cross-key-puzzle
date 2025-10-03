@@ -142,7 +142,13 @@ const player = {
   x: Number(fallbackConfig.start?.x) || 0,
   y: Number(fallbackConfig.start?.y) || 0,
 };
-let hasGoalAlerted = false;
+let hasNavigatedToClearPage = false;
+
+const goToClearPage = () => {
+  const baseUrl = 'pc-clear.html';
+  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+  window.location.replace(url);
+};
 
 function drawMaze() {
   if (!mazeContainer) {
@@ -190,7 +196,7 @@ const applyMazeConfig = (config = fallbackConfig, { resetPlayer = false, usingFa
     player.y = Number.isFinite(startY) ? startY : fallbackConfig.start.y;
   }
 
-  hasGoalAlerted = false;
+  hasNavigatedToClearPage = false;
   drawMaze();
 };
 
@@ -250,13 +256,15 @@ const updatePlayer = (position = {}) => {
 };
 
 const handleGoal = (goalReached) => {
-  if (goalReached && !hasGoalAlerted) {
-    hasGoalAlerted = true;
-    window.alert('ゴール！');
+  if (goalReached) {
+    if (!hasNavigatedToClearPage) {
+      hasNavigatedToClearPage = true;
+      goToClearPage();
+    }
+    return;
   }
-  if (!goalReached) {
-    hasGoalAlerted = false;
-  }
+
+  hasNavigatedToClearPage = false;
 };
 
 navigationSocket.on('status', ({ room, code: payloadCode, maze, mazeConfigKey, problem, goal: payloadGoal } = {}) => {

@@ -132,7 +132,13 @@ if (!Number.isFinite(player.x) || !Number.isFinite(player.y)) {
   player.x = fallbackConfig.start.x;
   player.y = fallbackConfig.start.y;
 }
-let hasGoalAlerted = false;
+let hasNavigatedToClearPage = false;
+
+const goToClearPage = () => {
+  const baseUrl = 'pc-clear.html';
+  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+  window.location.replace(url);
+};
 
 function drawMaze() {
   if (!mazeContainer) {
@@ -167,13 +173,15 @@ const updatePlayer = (position = {}) => {
 };
 
 const handleGoal = (goalReached) => {
-  if (goalReached && !hasGoalAlerted) {
-    hasGoalAlerted = true;
-    window.alert('ゴール！');
+  if (goalReached) {
+    if (!hasNavigatedToClearPage) {
+      hasNavigatedToClearPage = true;
+      goToClearPage();
+    }
+    return;
   }
-  if (!goalReached) {
-    hasGoalAlerted = false;
-  }
+
+  hasNavigatedToClearPage = false;
 };
 
 drawMaze();

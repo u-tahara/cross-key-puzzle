@@ -2,8 +2,7 @@
   const params = new URLSearchParams(window.location.search);
   const code = (params.get('code') || '').trim();
   const codeDisplay = document.querySelector('[data-code-display]');
-  const pcButton = document.querySelector('[data-pc-button]');
-  const mobileBackButton = document.querySelector('[data-mobile-back-button]');
+  const backButton = document.querySelector('[data-back-button]');
 
   const buildDestination = (baseUrl) =>
     code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
@@ -12,12 +11,8 @@
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
   }
 
-  if (pcButton) {
-    pcButton.setAttribute('href', buildDestination('pc-problem.html'));
-  }
-
-  if (mobileBackButton) {
-    mobileBackButton.setAttribute('href', buildDestination('mobile-problem.html'));
+  if (backButton) {
+    backButton.setAttribute('href', buildDestination('mobile-problem.html'));
   }
 
   const resolveNavigationEndpoint = () => {
@@ -87,8 +82,8 @@
 
   setupBackNavigation();
 
-  if (mobileBackButton) {
-    mobileBackButton.addEventListener('click', (event) => {
+  if (backButton) {
+    backButton.addEventListener('click', (event) => {
       event.preventDefault();
       notifyBackNavigation();
       goToWaitScreen();

@@ -318,8 +318,9 @@ io.on('connection', (socket) => {
     if (!code || code.length !== CODE_LEN) return;
     const role = typeof payload.role === 'string' ? payload.role : undefined;
     roomStates.set(code, { step:'problemSelection' });
-    const notifyPayload = { room:code, code }; if (role) notifyPayload.from = role;
-    socket.to(code).emit('navigateBack', notifyPayload);
+    const notifyPayload = { room:code, code };
+    if (role) notifyPayload.from = role;
+    io.to(code).emit('navigateBack', notifyPayload);
     io.to(code).emit('status', { room:code, code, step:'problemSelection', from: role });
   });
 

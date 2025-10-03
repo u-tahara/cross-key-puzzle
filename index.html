@@ -8,13 +8,17 @@
   </head>
   <body class="page page-index">
     <main>
-      <div id="deviceSelect">
-        <button id="pcBtn" type="button">PCで開く</button>
-        <button id="spBtn" type="button">スマホで開く</button>
+      <div class="loading-screen" role="status" aria-live="polite" aria-busy="true">
+        <img
+          src="img/common/logo.png"
+          alt="Cross Key Puzzle のロゴ"
+          class="loading-logo"
+        />
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <p id="autoRedirectMessage" class="auto-redirect-message">
+          端末情報を取得しています...
+        </p>
       </div>
-      <p id="autoRedirectMessage" class="auto-redirect-message" hidden aria-live="polite">
-        端末認識中
-      </p>
     </main>
   </body>
 </html>

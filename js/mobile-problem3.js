@@ -13,6 +13,15 @@
 
   const fallbackPassword = 'SHADOW-ACCESS';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
+  const successUrl = (main?.dataset?.successUrl || '').trim();
+  let hasNavigatedToSuccess = false;
+
+  const navigateToSuccess = () => {
+    if (!successUrl || hasNavigatedToSuccess) return;
+    hasNavigatedToSuccess = true;
+    const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
+    window.location.replace(url);
+  };
 
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
@@ -273,6 +282,7 @@
 
       if (value.toUpperCase() === password.toUpperCase()) {
         setFeedbackMessage('正解です！PC側で背景が暗くなるとパスワードが現れます。');
+        navigateToSuccess();
       } else {
         setFeedbackMessage('パスワードが一致しません。PC画面をもう一度確認してください。');
       }

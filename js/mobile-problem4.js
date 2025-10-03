@@ -25,6 +25,15 @@
 
   const fallbackPassword = 'NAVIGATOR';
   const password = (main?.dataset?.password || '').trim() || fallbackPassword;
+  const successUrl = (main?.dataset?.successUrl || '').trim();
+  let hasNavigatedToSuccess = false;
+
+  const navigateToSuccess = () => {
+    if (!successUrl || hasNavigatedToSuccess) return;
+    hasNavigatedToSuccess = true;
+    const url = code ? `${successUrl}?code=${encodeURIComponent(code)}` : successUrl;
+    window.location.replace(url);
+  };
 
   if (codeDisplay) {
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
@@ -396,6 +405,7 @@
 
       if (value.toUpperCase() === password.toUpperCase()) {
         setFeedbackMessage('正解です！PC画面に表示された断片を順番に並べられました。');
+        navigateToSuccess();
       } else {
         setFeedbackMessage('パスワードが一致しません。断片の順番をもう一度確認してください。');
       }

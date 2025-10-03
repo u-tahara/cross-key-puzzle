@@ -1,9 +1,9 @@
 (() => {
   const params = new URLSearchParams(window.location.search);
-  const code = params.get('code') || '';
+  const code = (params.get('code') || '').trim();
   const codeDisplay = document.querySelector('[data-code-display]');
-  const backButton = document.querySelector('[data-back-button]');
-  const mobileWaitButton = document.querySelector('[data-mobile-wait-button]');
+  const pcButton = document.querySelector('[data-pc-button]');
+  const mobileBackButton = document.querySelector('[data-mobile-back-button]');
 
   const buildDestination = (baseUrl) =>
     code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
@@ -12,12 +12,12 @@
     codeDisplay.textContent = code ? `接続コード: ${code}` : '接続コード未取得';
   }
 
-  if (backButton) {
-    backButton.setAttribute('href', buildDestination('pc-problem.html'));
+  if (pcButton) {
+    pcButton.setAttribute('href', buildDestination('pc-problem.html'));
   }
 
-  if (mobileWaitButton) {
-    mobileWaitButton.setAttribute('href', buildDestination('mobile-problem.html'));
+  if (mobileBackButton) {
+    mobileBackButton.setAttribute('href', buildDestination('mobile-problem.html'));
   }
 
   const resolveNavigationEndpoint = () => {
@@ -35,7 +35,7 @@
 
   const joinRoom = () => {
     if (!code) return;
-    navigationSocket.emit('join', { room: code, role: 'pc' });
+    navigationSocket.emit('join', { room: code, role: 'mobile' });
   };
 
   if (navigationSocket.connected) {
@@ -47,12 +47,11 @@
 
   const notifyBackNavigation = () => {
     if (!code) return;
-    navigationSocket.emit('navigateBack', { room: code, role: 'pc' });
+    navigationSocket.emit('navigateBack', { room: code, role: 'mobile' });
   };
 
-  const goBackToProblem = () => {
-    const baseUrl = 'pc-problem.html';
-    const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+  const goToWaitScreen = () => {
+    const url = buildDestination('mobile-problem.html');
     window.location.replace(url);
   };
 
@@ -61,7 +60,7 @@
       return;
     }
 
-    const stateKey = { page: 'pc-clear' };
+    const stateKey = { page: 'mobile-clear' };
 
     try {
       const currentState = window.history.state || {};
@@ -73,7 +72,7 @@
     const handlePopState = () => {
       window.removeEventListener('popstate', handlePopState);
       notifyBackNavigation();
-      goBackToProblem();
+      goToWaitScreen();
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -86,25 +85,50 @@
     }
   };
 
-  if (backButton) {
-    backButton.addEventListener('click', (event) => {
+  setupBackNavigation();
+
+  if (mobileBackButton) {
+    mobileBackButton.addEventListener('click', (event) => {
       event.preventDefault();
       notifyBackNavigation();
-      goBackToProblem();
-    });
-  }
-
-  if (mobileWaitButton) {
-    mobileWaitButton.addEventListener('click', () => {
-      notifyBackNavigation();
+      goToWaitScreen();
     });
   }
 
   navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {
     const roomCode = room || payloadCode;
     if (!roomCode || (code && roomCode !== code)) return;
-    goBackToProblem();
+    goToWaitScreen();
   });
 
-  setupBackNavigation();
+  const destinationMap = {
+    '1': 'mobile-next.html',
+    '2': 'mobile-next.html',
+    '3': 'mobile-problem3.html',
+    '4': 'mobile-next.html',
+    '5': 'mobile-next.html',
+    '6': 'mobile-problem6.html',
+  };
+
+  const goToProblem = (problem, destinations) => {
+    const fallbackDestination = destinationMap[problem] || destinationMap['1'];
+    const mobileDest = destinations?.mobile || fallbackDestination || 'mobile-next.html';
+    const url = buildDestination(mobileDest);
+    window.location.replace(url);
+  };
+
+  navigationSocket.on('problemSelected', (payload = {}) => {
+    const { room, code: payloadCode, problem, destinations } = payload;
+    const roomCode = room || payloadCode;
+    if (!roomCode || (code && roomCode !== code)) return;
+    goToProblem(problem, destinations);
+  });
+
+  navigationSocket.on('status', ({ room, code: payloadCode, step, problem, destinations } = {}) => {
+    const roomCode = room || payloadCode;
+    if (!roomCode || (code && roomCode !== code)) return;
+    if (step === 'problemSelected') {
+      goToProblem(problem, destinations);
+    }
+  });
 })();

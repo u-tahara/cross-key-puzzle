@@ -2,22 +2,22 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>PC - クリア</title>
+    <title>スマホ - クリア</title>
     <link rel="stylesheet" href="css/styles.css" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="js/navigation-endpoint.js" defer></script>
-    <script src="js/pc-clear.js" defer></script>
+    <script src="js/mobile-clear.js" defer></script>
   </head>
-  <body class="page page-pc-clear">
+  <body class="page page-mobile-clear">
     <main>
       <h1>クリアおめでとうございます！</h1>
       <p class="code-display" data-code-display></p>
       <p class="clear-message">
-        問題をクリアしました。ほかの問題にも挑戦してみましょう。
+        PC側にもクリア画面が表示されました。次に進む操作を選んでください。
       </p>
       <div class="clear-actions">
-        <a class="clear-action-button" data-back-button href="pc-problem.html">PCで問題選択に戻る</a>
-        <a class="clear-action-button secondary" data-mobile-wait-button href="mobile-problem.html">スマホ待機画面に戻る</a>
+        <a class="clear-action-button" data-pc-button href="pc-problem.html">PCで問題選択に戻る</a>
+        <a class="clear-action-button secondary" data-mobile-back-button href="mobile-problem.html">スマホ待機画面に戻る</a>
       </div>
     </main>
   </body>

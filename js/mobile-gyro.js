@@ -17,6 +17,14 @@ const navigationSocket = io(resolveNavigationEndpoint(), {
   withCredentials: true,
 });
 
+const goToClearPage = () => {
+  const baseUrl = 'mobile-clear.html';
+  const url = code ? `${baseUrl}?code=${encodeURIComponent(code)}` : baseUrl;
+  window.location.replace(url);
+};
+
+let hasNotifiedProblemSolved = false;
+
 const joinRoom = () => {
   if (!code) return;
   navigationSocket.emit('join', { room: code, role: 'mobile' });
@@ -28,6 +36,15 @@ if (navigationSocket.connected) {
 
 navigationSocket.on('connect', joinRoom);
 navigationSocket.on('reconnect', joinRoom);
+
+const notifyProblemSolved = () => {
+  if (!code || hasNotifiedProblemSolved) {
+    return;
+  }
+
+  hasNotifiedProblemSolved = true;
+  navigationSocket.emit('problemSolved', { room: code, role: 'mobile' });
+};
 
 const notifyBackNavigation = () => {
   if (!code) return;
@@ -277,7 +294,9 @@ navigationSocket.on('mazeState', ({ room, code: payloadCode, moved, direction, g
   }
 
   if (goalReached) {
-    setStatusMessage('ゴールしました！');
+    setStatusMessage('');
+    notifyProblemSolved();
+    goToClearPage();
     return;
   }
 
@@ -296,6 +315,18 @@ navigationSocket.on('mazeState', ({ room, code: payloadCode, moved, direction, g
     }
   }
 });
+
+const handleProblemSolved = ({ room, code: payloadCode } = {}) => {
+  const roomCode = room || payloadCode;
+  if (!roomCode || (code && roomCode !== code)) {
+    return;
+  }
+
+  hasNotifiedProblemSolved = true;
+  goToClearPage();
+};
+
+navigationSocket.on('problemSolved', handleProblemSolved);
 
 const backButton = document.querySelector('.back-button');
 

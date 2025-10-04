@@ -91,7 +91,7 @@ const showCode = () => {
 };
 
 showCode();
-setStatusMessage('「ジャイロ操作を開始」を押して操作を有効にしてください。');
+setStatusMessage('ジャイロセンサーを準備しています…');
 
 const orientationControl = {
   lastDirection: null,
@@ -192,11 +192,13 @@ const requestSensorPermission = async () => {
   return true;
 };
 
-const enableSensor = async () => {
+const enableSensor = async ({ initiatedByUser = false } = {}) => {
   if (sensorActive) return;
-  if (!startButton) return;
 
-  startButton.disabled = true;
+  if (startButton) {
+    startButton.disabled = true;
+    startButton.hidden = true;
+  }
   setStatusMessage('ジャイロセンサーの利用を確認しています…');
 
   let permissionGranted = true;
@@ -208,16 +210,22 @@ const enableSensor = async () => {
   }
 
   if (!permissionGranted) {
-    startButton.disabled = false;
-    setStatusMessage('センサーの利用が許可されませんでした。ブラウザーの設定を確認してください。');
-    startButton.textContent = 'もう一度試す';
+    if (startButton) {
+      startButton.disabled = false;
+      startButton.hidden = false;
+      startButton.textContent = initiatedByUser ? 'もう一度試す' : 'タップしてセンサーを有効化';
+    }
+    setStatusMessage('センサーの利用が許可されませんでした。画面をタップして再試行してください。');
     return;
   }
 
   window.addEventListener('deviceorientation', handleOrientation);
   sensorActive = true;
   resetOrientationControl(false);
-  startButton.textContent = 'ジャイロ操作中';
+  if (startButton) {
+    startButton.textContent = 'ジャイロ操作中';
+    startButton.hidden = true;
+  }
   setStatusMessage('端末を傾けてキャラクターを動かしてください。');
   if (resetButton) {
     resetButton.disabled = false;
@@ -225,7 +233,7 @@ const enableSensor = async () => {
 };
 
 if (startButton) {
-  startButton.addEventListener('click', enableSensor);
+  startButton.addEventListener('click', () => enableSensor({ initiatedByUser: true }));
 }
 
 if (resetButton) {
@@ -238,12 +246,20 @@ if (resetButton) {
   });
 }
 
-if (startButton && typeof window !== 'undefined' && !('DeviceOrientationEvent' in window)) {
-  startButton.disabled = true;
+const deviceOrientationSupported =
+  typeof window !== 'undefined' && 'DeviceOrientationEvent' in window;
+
+if (!deviceOrientationSupported) {
+  if (startButton) {
+    startButton.hidden = true;
+    startButton.disabled = true;
+  }
   setStatusMessage('この端末ではジャイロセンサーが利用できません。');
   if (resetButton) {
     resetButton.disabled = true;
   }
+} else {
+  enableSensor();
 }
 
 navigationSocket.on('navigateBack', ({ room, code: payloadCode } = {}) => {

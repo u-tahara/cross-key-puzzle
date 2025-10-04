@@ -155,6 +155,8 @@
     }
     if (cameraButton) {
       cameraButton.disabled = false;
+      cameraButton.hidden = false;
+      cameraButton.textContent = 'カメラ同期を再試行';
     }
   };
 
@@ -203,14 +205,19 @@
     analyzeFrameHandle = requestAnimationFrame(analyzeFrame);
   };
 
-  const startCamera = async () => {
+  const startCamera = async ({ initiatedByUser = false } = {}) => {
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       setStatusMessage('この端末ではカメラを利用できません。');
+      if (cameraButton) {
+        cameraButton.hidden = true;
+        cameraButton.disabled = true;
+      }
       return;
     }
 
     if (cameraButton) {
       cameraButton.disabled = true;
+      cameraButton.hidden = true;
     }
 
     setStatusMessage('カメラを準備しています…');
@@ -228,6 +235,8 @@
       setStatusMessage('カメラを起動できませんでした。周囲の明るさを手動で調整してください。');
       if (cameraButton) {
         cameraButton.disabled = false;
+        cameraButton.hidden = false;
+        cameraButton.textContent = initiatedByUser ? 'もう一度試す' : 'カメラ同期を再試行';
       }
       return;
     }
@@ -250,10 +259,12 @@
   if (cameraButton) {
     cameraButton.addEventListener('click', () => {
       if (!mediaStream) {
-        startCamera();
+        startCamera({ initiatedByUser: true });
       }
     });
   }
+
+  startCamera();
 
   window.addEventListener('beforeunload', stopCamera);
   document.addEventListener('visibilitychange', () => {

@@ -12,8 +12,15 @@
     <main data-password="SHADOW-ACCESS">
       <h1>問題3: 光と影のパスワード</h1>
       <p class="code-display" data-code-display></p>
-      <p class="status" data-status>カメラを同期すると背景が変化します。</p>
-      <button type="button" class="camera-button" data-camera-button>カメラ同期を開始</button>
+      <p class="status" data-status>カメラを準備しています…</p>
+      <button
+        type="button"
+        class="camera-button"
+        data-camera-button
+        hidden
+      >
+        カメラ同期を再試行
+      </button>
       <video class="preview" data-preview autoplay playsinline muted></video>
       <form class="password-form" data-password-form>
         <label for="passwordInput">パスワードを入力</label>

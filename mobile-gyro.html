@@ -13,14 +13,19 @@
       <h1>スマホを傾けて迷路を進もう</h1>
       <p class="code-display" data-code-display></p>
       <p class="controller-status" data-status aria-live="polite"></p>
-      <button type="button" class="gyro-start-button" data-start-button>
-        ジャイロ操作を開始
+      <button
+        type="button"
+        class="gyro-start-button"
+        data-start-button
+        hidden
+      >
+        センサーを再試行
       </button>
       <button type="button" class="gyro-reset-button" data-reset-button>
         ジャイロの向きをリセット
       </button>
       <p class="gyro-instruction">
-        ボタンを押してセンサーを有効化し、端末を前後左右に傾けるとキャラクターが移動します。
+        ページ読み込み後に自動でセンサーが有効になります。開始されない場合は下のボタンで再試行してください。
       </p>
       <p class="gyro-reset-instruction">
         キャラクターの反応が敏感になったと感じたら、リセットボタンを押して端末をまっすぐに構え直してください。

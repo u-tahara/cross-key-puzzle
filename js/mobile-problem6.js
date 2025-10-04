@@ -307,6 +307,33 @@
     });
   }
 
+  const scheduleAutoStart = () => {
+    const attemptStart = () => {
+      startMonitoring();
+    };
+
+    const visibility = document.visibilityState;
+    if (typeof visibility !== 'string' || visibility === 'visible') {
+      attemptStart();
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        attemptStart();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
+  };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    scheduleAutoStart();
+  } else {
+    window.addEventListener('load', scheduleAutoStart, { once: true });
+  }
+
   window.addEventListener('beforeunload', stopMonitoring);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
